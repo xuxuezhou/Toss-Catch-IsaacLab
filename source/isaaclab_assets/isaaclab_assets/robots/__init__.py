@@ -16,6 +16,7 @@ from .franka import *
 from .humanoid import *
 from .humanoid_28 import *
 from .kinova import *
+from .leap import *
 from .quadcopter import *
 from .ridgeback_franka import *
 from .sawyer import *
