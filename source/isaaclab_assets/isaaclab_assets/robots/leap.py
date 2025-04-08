@@ -30,7 +30,7 @@ from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR
 LEAP_HAND_CFG = ArticulationCfg(
     spawn=sim_utils.UsdFileCfg(
         # usd_path=f"{ISAAC_NUCLEUS_DIR}/Robots/LeapHand/leap_right_hand_instanceable.usd",
-        usd_path=f"/home/xuxuezhou/isaac_sim-assets-2023.1.1/Assets/Isaac/2023.1.1/Isaac/Robots/LeapHand",
+        usd_path="/home/xuxuezhou/code/Toss-Catch-IsaacLab/source/isaaclab_assets/data/Robots/LEAPHand/leaphand.usd",
         activate_contact_sensors=False,
         rigid_props=sim_utils.RigidBodyPropertiesCfg(
             disable_gravity=True,
@@ -52,9 +52,10 @@ LEAP_HAND_CFG = ArticulationCfg(
         # collision_props=sim_utils.CollisionPropertiesCfg(contact_offset=0.005, rest_offset=0.0),
     ),
     init_state=ArticulationCfg.InitialStateCfg(
-        pos=(0.0, 0.0, 0.5),
-        rot=(0.257551, 0.283045, 0.683330, -0.621782),
-        joint_pos={"^(?!thumb_joint_0).*": 0.0, "thumb_joint_0": 0.28},
+        pos=(0.0, -0.19, 0.50),
+        # rot=(0.257551, 0.283045, 0.683330, -0.621782),
+        rot=(0.0, 1.0, 0.0, 0.0),
+        joint_pos={".*": 0.0},
     ),
     actuators={
         "fingers": ImplicitActuatorCfg(
