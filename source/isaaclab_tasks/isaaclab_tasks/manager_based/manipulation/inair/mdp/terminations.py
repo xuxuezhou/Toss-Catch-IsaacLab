@@ -82,6 +82,7 @@ def object_away_from_robot(
 
     return dist > threshold
 
+
 def object_away_from_palm(
     env: ManagerBasedRLEnv,
     threshold: float,
@@ -102,12 +103,12 @@ def object_away_from_palm(
     # extract useful elements
     robot = env.scene[asset_cfg.name]
     object = env.scene[object_cfg.name]
-    
+
+    # get link7 state (7th link)
     link7_state = robot.data.body_link_state_w[:, 6]  # 0-based indexing, so 6 is the 7th link
-    link7_pos = link7_state[:, :3]  # first 3 elements are position
+    link7_pos = link7_state[:3]  # first 3 elements are position
 
     # compute distance
     dist = torch.norm(link7_pos - object.data.root_pos_w, dim=1)
 
     return dist > threshold
-

@@ -31,7 +31,7 @@ import isaaclab_tasks.manager_based.manipulation.inhand.mdp as mdp
 
 
 @configclass
-class InHandObjectSceneCfg(InteractiveSceneCfg):
+class InAirObjectSceneCfg(InteractiveSceneCfg):
     """Configuration for a scene with an object and a dexterous hand."""
 
     # robots
@@ -54,7 +54,11 @@ class InHandObjectSceneCfg(InteractiveSceneCfg):
             ),
             mass_props=sim_utils.MassPropertiesCfg(density=400.0),
         ),
-        init_state=RigidObjectCfg.InitialStateCfg(pos=(0.0, -0.19, 0.56), rot=(1.0, 0.0, 0.0, 0.0)),
+        init_state=RigidObjectCfg.InitialStateCfg(
+            # pos=(0.0, -0.19, 0.56), 
+            pos=(0.55, -0.18, 1.32),
+            rot=(1.0, 0.0, 0.0, 0.0)
+        ),
     )
 
     # lights
@@ -188,8 +192,8 @@ class ObservationsCfg:
             )
 
     # observation groups
-    # policy: KinematicObsGroupCfg = KinematicObsGroupCfg()
-    policy: InitialPoseOnlyObsGroupCfg = InitialPoseOnlyObsGroupCfg()
+    policy: KinematicObsGroupCfg = KinematicObsGroupCfg()
+    # policy: InitialPoseOnlyObsGroupCfg = InitialPoseOnlyObsGroupCfg()
 
 
 @configclass
@@ -266,7 +270,12 @@ class EventCfg:
         func=mdp.reset_joints_within_limits_range,
         mode="reset",
         params={
-            "position_range": {".*": [0.2, 0.2]},
+            # "position_range": {".*": [0.2, 0.2]},
+            "position_range": {".*": [0.0, 0.0]},
+            # "position_range": {
+            #     "^joint[1-7]$": [0.03, 0.03],
+            #     "^a_.*$": [0.1, 0.1],
+            # },
             "velocity_range": {".*": [0.0, 0.0]},
             "use_default_offset": True,
             "operation": "scale",
@@ -318,7 +327,8 @@ class TerminationsCfg:
         func=mdp.max_consecutive_success, params={"num_success": 50, "command_name": "object_pose"}
     )
 
-    object_out_of_reach = DoneTerm(func=mdp.object_away_from_robot, params={"threshold": 0.3})
+    # object_out_of_reach = DoneTerm(func=mdp.object_away_from_robot, params={"threshold": 0.3})
+    object_out_of_reach = DoneTerm(func=mdp.object_away_from_palm, params={"threshold": 0.3})
 
     # object_out_of_reach = DoneTerm(
     #     func=mdp.object_away_from_goal, params={"threshold": 0.24, "command_name": "object_pose"}
@@ -331,11 +341,11 @@ class TerminationsCfg:
 
 
 @configclass
-class InHandObjectEnvCfg(ManagerBasedRLEnvCfg):
+class InAirObjectEnvCfg(ManagerBasedRLEnvCfg):
     """Configuration for the in hand reorientation environment."""
 
     # Scene settings
-    scene: InHandObjectSceneCfg = InHandObjectSceneCfg(num_envs=8192, env_spacing=0.6)
+    scene: InAirObjectSceneCfg = InAirObjectSceneCfg(num_envs=8192, env_spacing=0.6)
     # Simulation settings
     sim: SimulationCfg = SimulationCfg(
         physics_material=RigidBodyMaterialCfg(
