@@ -139,8 +139,42 @@ def main():
         with torch.inference_mode():
             # agent stepping
             actions = policy(obs)
+            
+            # # Get positions and calculate distances
+            # palm_pos = env.unwrapped.scene["robot"].data.body_link_state_w[:,6][:, :3]
+            # object_pos = env.unwrapped.scene["object"].data.root_pos_w
+            # dist = torch.norm(palm_pos - object_pos, dim=1)
+            # threshold = 0.3
+            
+            # # Get joint velocities
+            # joint_velocities = env.unwrapped.scene["robot"].data.joint_vel
+            # joint_accelerates = env.unwrapped.scene["robot"].data.joint_acc
+            
+            # print(f"\n[INFO] Palm Position: {palm_pos}")
+            # print(f"[INFO] Joint Velocities: {joint_velocities}")
+            # print(f"[INFO] Joint Accelerates: {joint_accelerates}")
+            # print(f"[INFO] actions: {actions}")
+            # # Print state information
+            # print(f"\n[INFO] Timestep: {timestep}")
+            # print(f"[INFO] Palm position: {palm_pos[0]}")
+            # print(f"[INFO] Object position: {object_pos[0]}")
+            # print(f"[INFO] Distance to palm: {dist[0]:.3f}")
+            # print(f"[INFO] Out of reach (dist > {threshold}): {dist[0] > threshold}")
+            
             # env stepping
-            obs, _, _, _ = env.step(actions)
+            obs, rewards, dones, info = env.step(actions)
+            
+            # # Print termination information
+            # if dones[0]:
+            #     print("\n[TERMINATION INFO]")
+            #     print(f"Timestep at termination: {timestep}")
+            #     if "termination_reason" in info:
+            #         print(f"Termination reason: {info['termination_reason']}")
+            #     print(f"Final distance to palm: {dist[0]:.3f}")
+            #     print(f"Final palm position: {palm_pos[0]}")
+            #     print(f"Final object position: {object_pos[0]}")
+            #     print("------------------------")
+            
         if args_cli.video:
             timestep += 1
             # Exit the play loop after recording one video

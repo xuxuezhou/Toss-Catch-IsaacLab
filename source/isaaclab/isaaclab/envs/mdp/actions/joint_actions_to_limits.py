@@ -60,10 +60,19 @@ class JointPositionToLimitsAction(ActionTerm):
             f" {self._joint_names} [{self._joint_ids}]"
         )
 
-        # Avoid indexing across all joints for efficiency
-        if self._num_joints == self._asset.num_joints:
-            self._joint_ids = slice(None)
+        # # Avoid indexing across all joints for efficiency
+        # if self._num_joints == self._asset.num_joints:
+        #     self._joint_ids = slice(None)
+        # Convert joint_ids to slice if possible
+        def try_convert_to_slice(lst):
+            if len(lst) < 2:
+                return lst
+            step = lst[1] - lst[0]
+            if all((lst[i + 1] - lst[i]) == step for i in range(len(lst) - 1)):
+                return slice(lst[0], lst[-1] + step, step)
+            return lst
 
+        self._joint_ids = try_convert_to_slice(self._joint_ids)
         # create tensors for raw and processed actions
         self._raw_actions = torch.zeros(self.num_envs, self.action_dim, device=self.device)
         self._processed_actions = torch.zeros_like(self.raw_actions)
@@ -204,6 +213,7 @@ class EMAJointPositionToLimitsAction(JointPositionToLimitsAction):
         super().reset(env_ids)
         # reset history to current joint positions
         self._prev_applied_actions[env_ids, :] = self._asset.data.joint_pos[env_ids, self._joint_ids]
+        # self._prev_applied_actions[env_ids, :] = self._asset.data.joint_pos[env_ids, self._joint_ids].unsqueeze(1)
 
     def process_actions(self, actions: torch.Tensor):
         # apply affine transformations

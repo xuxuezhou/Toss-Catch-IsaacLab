@@ -19,10 +19,10 @@ from isaaclab.markers.visualization_markers import VisualizationMarkers
 if TYPE_CHECKING:
     from isaaclab.envs import ManagerBasedRLEnv
 
-    from .commands_cfg import InHandReOrientationCommandCfg
+    from .commands_cfg import InAirReOrientationCommandCfg
 
 
-class InHandReOrientationCommand(CommandTerm):
+class InAirReOrientationCommand(CommandTerm):
     """Command term that generates 3D pose commands for in-hand manipulation task.
 
     This command term generates 3D orientation commands for the object. The orientation commands
@@ -38,10 +38,10 @@ class InHandReOrientationCommand(CommandTerm):
     orientation error is below a certain threshold.
     """
 
-    cfg: InHandReOrientationCommandCfg
+    cfg: InAirReOrientationCommandCfg
     """Configuration for the command term."""
 
-    def __init__(self, cfg: InHandReOrientationCommandCfg, env: ManagerBasedRLEnv):
+    def __init__(self, cfg: InAirReOrientationCommandCfg, env: ManagerBasedRLEnv):
         """Initialize the command term class.
 
         Args:
@@ -56,8 +56,10 @@ class InHandReOrientationCommand(CommandTerm):
 
         # create buffers to store the command
         # -- command: (x, y, z)
-        init_pos_offset = torch.tensor(cfg.init_pos_offset, dtype=torch.float, device=self.device)
-        self.pos_command_e = self.object.data.default_root_state[:, :3] + init_pos_offset
+        initial_pos = [0.55, -0.18, 1.32]
+        self.pos_command_e = torch.tensor(initial_pos, device=self.device).repeat(self.num_envs, 1)
+        # init_pos_offset = torch.tensor(cfg.init_pos_offset, dtype=torch.float, device=self.device)
+        # self.pos_command_e = self.object.data.default_root_state[:, :3] + init_pos_offset
         self.pos_command_w = self.pos_command_e + self._env.scene.env_origins
         # -- orientation: (w, x, y, z)
         self.quat_command_w = torch.zeros(self.num_envs, 4, device=self.device)
@@ -74,7 +76,7 @@ class InHandReOrientationCommand(CommandTerm):
         self.metrics["consecutive_success"] = torch.zeros(self.num_envs, device=self.device)
 
     def __str__(self) -> str:
-        msg = "InHandManipulationCommandGenerator:\n"
+        msg = "InAirManipulationCommandGenerator:\n"
         msg += f"\tCommand dimension: {tuple(self.command.shape[1:])}\n"
         return msg
 
@@ -99,8 +101,25 @@ class InHandReOrientationCommand(CommandTerm):
         )
         # -- compute the position error
         self.metrics["position_error"] = torch.norm(self.object.data.root_pos_w - self.pos_command_w, dim=1)
+        
+        # -- compute velocity magnitude (both linear and angular)
+        lin_vel = self.object.data.root_lin_vel_w
+        ang_vel = self.object.data.root_ang_vel_w
+        self.metrics["velocity_magnitude"] = torch.norm(lin_vel, dim=1) + torch.norm(ang_vel, dim=1)
+        
+        # -- compute acceleration magnitude (both linear and angular)
+        lin_acc = self.object.data.body_lin_acc_w.squeeze(1)
+        ang_acc = self.object.data.body_ang_acc_w.squeeze(1)
+        self.metrics["acceleration_magnitude"] = torch.norm(lin_acc, dim=1) + torch.norm(ang_acc, dim=1)
+        
         # -- compute the number of consecutive successes
-        successes = self.metrics["orientation_error"] < self.cfg.orientation_success_threshold
+        # Check all conditions: orientation error, velocity, and acceleration
+        orientation_success = self.metrics["orientation_error"] < self.cfg.orientation_success_threshold
+        velocity_success = self.metrics["velocity_magnitude"] < 0.01  # threshold for velocity
+        acceleration_success = self.metrics["acceleration_magnitude"] < 0.01  # threshold for acceleration
+        
+        # All conditions must be met for success
+        successes = orientation_success & velocity_success & acceleration_success
         self.metrics["consecutive_success"] += successes.float()
 
     def _resample_command(self, env_ids: Sequence[int]):

@@ -82,32 +82,3 @@ def object_away_from_robot(
 
     return dist > threshold
 
-def object_away_from_palm(
-    env: ManagerBasedRLEnv,
-    threshold: float,
-    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
-    object_cfg: SceneEntityCfg = SceneEntityCfg("object"),
-) -> torch.Tensor:
-    """Check if object has gone far from the robot's palm (link7).
-
-    The object is considered to be out-of-reach if the distance between the robot's palm (link7) and the object is greater
-    than the threshold.
-
-    Args:
-        env: The environment object.
-        threshold: The threshold for the distance between the robot's palm and the object.
-        asset_cfg: The configuration for the robot entity. Default is "robot".
-        object_cfg: The configuration for the object entity. Default is "object".
-    """
-    # extract useful elements
-    robot = env.scene[asset_cfg.name]
-    object = env.scene[object_cfg.name]
-    
-    link7_state = robot.data.body_link_state_w[:, 6]  # 0-based indexing, so 6 is the 7th link
-    link7_pos = link7_state[:, :3]  # first 3 elements are position
-
-    # compute distance
-    dist = torch.norm(link7_pos - object.data.root_pos_w, dim=1)
-
-    return dist > threshold
-

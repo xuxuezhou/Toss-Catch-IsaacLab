@@ -22,8 +22,10 @@ from isaaclab.sim.spawners.materials.physics_materials_cfg import RigidBodyMater
 from isaaclab.utils import configclass
 from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR
 from isaaclab.utils.noise import AdditiveGaussianNoiseCfg as Gnoise
+from isaaclab.controllers.operational_space_cfg import OperationalSpaceControllerCfg
+from isaaclab.envs.mdp.actions.actions_cfg import OperationalSpaceControllerActionCfg
 
-import isaaclab_tasks.manager_based.manipulation.inhand.mdp as mdp
+import isaaclab_tasks.manager_based.manipulation.inair.mdp as mdp
 
 ##
 # Scene definition
@@ -42,6 +44,8 @@ class InAirObjectSceneCfg(InteractiveSceneCfg):
         prim_path="{ENV_REGEX_NS}/object",
         spawn=sim_utils.UsdFileCfg(
             usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/DexCube/dex_cube_instanceable.usd",
+            # usd_path=f"/home/xuxuezhou/og_dataset/og_objects/pool_ball/uoirje/usd",
+            scale=(1.5, 1.5, 1.5),
             rigid_props=sim_utils.RigidBodyPropertiesCfg(
                 kinematic_enabled=False,
                 disable_gravity=False,
@@ -82,13 +86,13 @@ class InAirObjectSceneCfg(InteractiveSceneCfg):
 class CommandsCfg:
     """Command specifications for the MDP."""
 
-    object_pose = mdp.InHandReOrientationCommandCfg(
+    object_pose = mdp.InAirReOrientationCommandCfg(
         asset_name="object",
-        init_pos_offset=(0.0, 0.0, -0.04),
+        init_pos_offset=(0.0, 0.0, 0.0),
         update_goal_on_success=True,
         orientation_success_threshold=0.1,
         make_quat_unique=False,
-        marker_pos_offset=(-0.2, -0.06, 0.08),
+        marker_pos_offset=(0.0, 0.0, 0.0),
         debug_vis=True,
     )
 
@@ -97,12 +101,15 @@ class CommandsCfg:
 class ActionsCfg:
     """Action specifications for the MDP."""
 
-    joint_pos = mdp.EMAJointPositionToLimitsActionCfg(
-        asset_name="robot",
-        joint_names=[".*"],
-        alpha=0.95,
-        rescale_to_limits=True,
-    )
+    # joint_pos = mdp.EMAJointPositionToLimitsActionCfg(
+    #     asset_name="robot",
+    #     joint_names=[".*"],
+    #     alpha=0.95,
+    #     rescale_to_limits=True,
+    # )
+    
+    arm_action = OperationalSpaceControllerActionCfg()
+    hand_action = mdp.EMAJointPositionToLimitsActionCfg()
 
 
 @configclass
@@ -288,11 +295,11 @@ class RewardsCfg:
     """Reward terms for the MDP."""
 
     # -- task
-    # track_pos_l2 = RewTerm(
-    #     func=mdp.track_pos_l2,
-    #     weight=-10.0,
-    #     params={"object_cfg": SceneEntityCfg("object"), "command_name": "object_pose"},
-    # )
+    track_position_inv_l2 = RewTerm(
+        func=mdp.track_position_inv_l2,
+        weight=1.0,
+        params={"object_cfg": SceneEntityCfg("object"), "pos_eps": 0.1, "command_name": "object_pose"},
+    )
     track_orientation_inv_l2 = RewTerm(
         func=mdp.track_orientation_inv_l2,
         weight=1.0,
@@ -305,6 +312,16 @@ class RewardsCfg:
     )
 
     # -- penalties
+    velocity_penalty = RewTerm(
+        func=mdp.velocity_penalty,
+        weight=-10.0,
+        params={"object_cfg": SceneEntityCfg("object"), "velocity_threshold": 0.01, "command_name": "object_pose"},
+    )
+    acceleration_penalty = RewTerm(
+        func=mdp.acceleration_penalty,
+        weight=-10.0,
+        params={"object_cfg": SceneEntityCfg("object"), "acceleration_threshold": 0.01, "command_name": "object_pose"},
+    )
     joint_vel_l2 = RewTerm(func=mdp.joint_vel_l2, weight=-2.5e-5)
     action_l2 = RewTerm(func=mdp.action_l2, weight=-0.0001)
     action_rate_l2 = RewTerm(func=mdp.action_rate_l2, weight=-0.01)
@@ -315,7 +332,8 @@ class RewardsCfg:
     #     weight=-0.0,
     #     params={"term_keys": "object_out_of_reach"},
     # )
-
+    
+    # joint_deviation_l1 = RewTerm(func=mdp.joint_deviation_l1, weight=-1)
 
 @configclass
 class TerminationsCfg:
@@ -345,7 +363,7 @@ class InAirObjectEnvCfg(ManagerBasedRLEnvCfg):
     """Configuration for the in hand reorientation environment."""
 
     # Scene settings
-    scene: InAirObjectSceneCfg = InAirObjectSceneCfg(num_envs=8192, env_spacing=0.6)
+    scene: InAirObjectSceneCfg = InAirObjectSceneCfg(num_envs=8192, env_spacing=1.0)
     # Simulation settings
     sim: SimulationCfg = SimulationCfg(
         physics_material=RigidBodyMaterialCfg(

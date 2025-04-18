@@ -5,6 +5,7 @@ import math
 
 import isaaclab.sim as sim_utils
 from isaaclab.actuators.actuator_cfg import ImplicitActuatorCfg
+from isaaclab.controllers import OperationalSpaceControllerCfg
 from isaaclab.assets.articulation import ArticulationCfg
 from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR
 
@@ -35,7 +36,18 @@ XARM_LEAP_HAND_CFG = ArticulationCfg(
         pos=(0.0, -0.19, 0.50),
         rot=(1.0, 0.0, 0.0, 0.0),
         joint_pos={
-            ".*": 0.0,  # Zero out all joints including arm and hand
+            # ".*": 0.0,  # Zero out all joints including arm and hand
+            # xArm joints
+            "joint1": 0.0,
+            "joint2": -0.3,
+            "joint3": 0.8,
+            "joint4": 1.2,
+            "joint5": 1.57,
+            "joint6": -0.5,
+            "joint7": 0.3,
+
+            # hand joints
+            "^a_.*$": 0.0,
         },
     ),
     actuators={

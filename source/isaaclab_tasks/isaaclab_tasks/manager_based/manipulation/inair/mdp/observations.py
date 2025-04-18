@@ -14,7 +14,7 @@ from isaaclab.envs import ManagerBasedRLEnv
 from isaaclab.managers import SceneEntityCfg
 
 if TYPE_CHECKING:
-    from .commands import InHandReOrientationCommand
+    from .commands import InAirReOrientationCommand
 
 
 def goal_quat_diff(
@@ -26,7 +26,7 @@ def goal_quat_diff(
     """
     # extract useful elements
     asset: RigidObject = env.scene[asset_cfg.name]
-    command_term: InHandReOrientationCommand = env.command_manager.get_term(command_name)
+    command_term: InAirReOrientationCommand = env.command_manager.get_term(command_name)
 
     # obtain the orientations
     goal_quat_w = command_term.command[:, 3:7]

@@ -12,7 +12,7 @@ from isaaclab.envs import ManagerBasedRLEnv
 from isaaclab.managers import SceneEntityCfg
 
 if TYPE_CHECKING:
-    from .commands import InHandReOrientationCommand
+    from .commands import InAirReOrientationCommand
 
 
 def max_consecutive_success(env: ManagerBasedRLEnv, num_success: int, command_name: str) -> torch.Tensor:
@@ -23,7 +23,7 @@ def max_consecutive_success(env: ManagerBasedRLEnv, num_success: int, command_na
         num_success: Threshold for the number of consecutive successes required.
         command_name: The command term to be used for extracting the goal.
     """
-    command_term: InHandReOrientationCommand = env.command_manager.get_term(command_name)
+    command_term: InAirReOrientationCommand = env.command_manager.get_term(command_name)
 
     return command_term.metrics["consecutive_success"] >= num_success
 
@@ -46,7 +46,7 @@ def object_away_from_goal(
         object_cfg: The configuration for the scene entity. Default is "object".
     """
     # extract useful elements
-    command_term: InHandReOrientationCommand = env.command_manager.get_term(command_name)
+    command_term: InAirReOrientationCommand = env.command_manager.get_term(command_name)
     asset = env.scene[object_cfg.name]
 
     # object pos
@@ -103,10 +103,9 @@ def object_away_from_palm(
     # extract useful elements
     robot = env.scene[asset_cfg.name]
     object = env.scene[object_cfg.name]
-
-    # get link7 state (7th link)
+    
     link7_state = robot.data.body_link_state_w[:, 6]  # 0-based indexing, so 6 is the 7th link
-    link7_pos = link7_state[:3]  # first 3 elements are position
+    link7_pos = link7_state[:, :3]  # first 3 elements are position
 
     # compute distance
     dist = torch.norm(link7_pos - object.data.root_pos_w, dim=1)
