@@ -864,6 +864,55 @@ def reset_root_state_uniform(
     asset.write_root_pose_to_sim(torch.cat([positions, orientations], dim=-1), env_ids=env_ids)
     asset.write_root_velocity_to_sim(velocities, env_ids=env_ids)
 
+def reset_object_above_palm(
+    env: ManagerBasedEnv,
+    env_ids: torch.Tensor,
+    pose_range: dict[str, tuple[float, float]],
+    asset_cfg: SceneEntityCfg = SceneEntityCfg("object"),
+):
+    """Reset the object above the robot's palm with some random offset.
+    
+    This function sets the object's position to be above the robot's palm (palm_lower)
+    with some random offset within the given ranges.
+    
+    Args:
+        env: The environment instance
+        env_ids: The environment IDs to reset
+        pose_range: Dictionary of pose ranges for randomization
+        velocity_range: Dictionary of velocity ranges for randomization
+        asset_cfg: Configuration for the object to reset
+    """
+    # Get the robot and object
+    robot = env.scene["robot"]
+    object = env.scene[asset_cfg.name]
+    
+    # Original code to get palm_lower's position (commented out)
+    # palm_lower_pos = robot.data.body_link_pos_w[env_ids, 10]
+    
+    # Use hardcoded palm_lower position instead of reading from robot data
+    palm_lower_pos = torch.tensor([0.3001, -0.3307, 1.0957], device=object.device)
+    
+    # Get default root state for orientation
+    root_states = object.data.default_root_state[env_ids].clone()
+    
+    # Sample random offsets for position
+    range_list = [pose_range.get(key, (0.0, 0.0)) for key in ["x", "y", "z"]]
+    ranges = torch.tensor(range_list, device=object.device)
+    pos_rand_samples = math_utils.sample_uniform(ranges[:, 0], ranges[:, 1], (len(env_ids), 3), device=object.device)
+    
+    # Set position to be above palm with random offset
+    positions = palm_lower_pos.unsqueeze(0).repeat(len(env_ids), 1) + pos_rand_samples
+    
+    # Sample random orientation
+    range_list = [pose_range.get(key, (0.0, 0.0)) for key in ["roll", "pitch", "yaw"]]
+    ranges = torch.tensor(range_list, device=object.device)
+    rot_rand_samples = math_utils.sample_uniform(ranges[:, 0], ranges[:, 1], (len(env_ids), 3), device=object.device)
+    orientations_delta = math_utils.quat_from_euler_xyz(rot_rand_samples[:, 0], rot_rand_samples[:, 1], rot_rand_samples[:, 2])
+    orientations = math_utils.quat_mul(root_states[:, 3:7], orientations_delta)
+    
+    # Set into the physics simulation
+    object.write_root_pose_to_sim(torch.cat([positions, orientations], dim=-1), env_ids=env_ids)
+
 
 def reset_root_state_with_random_orientation(
     env: ManagerBasedEnv,

@@ -35,8 +35,4 @@ class xArmLeapCubePPORunnerCfg(RslRlOnPolicyRunnerCfg):
         desired_kl=0.01,
         max_grad_norm=1.0,
     )
-
-
-@configclass
-class xArmLeapCubeNoVelObsPPORunnerCfg(xArmLeapCubePPORunnerCfg):
-    experiment_name = "xarm_leap_cube_no_vel_obs"
+    

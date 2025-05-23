@@ -22,67 +22,53 @@ class xArmLeapCubeEnvCfg(inair_env_cfg.InAirObjectEnvCfg):
         # post init of parent
         super().__post_init__()
 
-        # switch robot to leap hand
         self.scene.robot = XARM_LEAP_HAND_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
-        
-        # Remove stiffness and damping for effort control
-        self.scene.robot.actuators["arm"].stiffness = 0.0
-        self.scene.robot.actuators["arm"].damping = 0.0
-        
-        # self.scene.robot.init_state.joint_pos = {
-        #     # xArm joints
-        #     "joint1": 0.0,
-        #     "joint2": 0.0,
-        #     "joint3": 0.0,
-        #     "joint4": 1.57,
-        #     "joint5": 3.14, 
-        #     "joint6": 1.57,
-        #     "joint7": 0.0,
-            
-        #     # hand joints
-        #     "^a_.*$": 0.0,
-        # }
-        
-        # self.scene.robot.init_state.joint_pos = {
-        #     # xArm joints
-        #     "joint1": 0.0,
-        #     "joint2": -0.3,
-        #     "joint3": 0.8,
-        #     "joint4": 1.2,
-        #     "joint5": 1.57,
-        #     "joint6": -0.5,
-        #     "joint7": 0.3,
+        self.scene.robot.init_state.joint_pos = {
+            # xArm joints
+            "joint1": -1.5,
+            "joint2": -0.4,     # 让上臂抬起来一点  
+            "joint3": 0.8,      # 前臂自然伸出
+            "joint4": 1.2,      # 手腕抬起
+            "joint5": 3.6,      # 接近 180°，让掌面转向上
+            "joint6": 1.57,     # 手心朝上
+            "joint7": 0.3,      # 稍微偏转末端方向，避免奇异
 
-        #     # hand joints
-        #     "^a_.*$": 0.0,
-        # }
-        
-        # Disable automatic movements
-        self.scene.robot.init_state.joint_vel = {".*": 0.0}  # Set all joint velocities to zero
+            # hand joints
+            "^a_.*$": 0.0,
+        }
 
-        # Configure the operational space controller for the arm
+        # Configure the operational space controller for the arm 
+        # dim: rel (6) (+ stiffness (6) + damping (6))
         self.actions.arm_action = OperationalSpaceControllerActionCfg(
             asset_name="robot",
             joint_names=["^joint[1-7]$"],  # xArm joints
-            body_name="link7",  # End effector
+            body_name="link_eef",  # End effector
             controller_cfg=OperationalSpaceControllerCfg(
-                target_types=["pose_abs"],
-                impedance_mode="variable_kp",
+                # target_types=["pose_rel", "wrench_abs"], # dim: 6 + 6
+                target_types=["pose_rel"], # dim: 6 
+                
+                impedance_mode="fixed",
+                motion_stiffness_task=(100.0, 100.0, 100.0, 100.0, 100.0, 100.0),
+                motion_damping_ratio_task=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0),
+                
+                # contact_wrench_stiffness_task=[0.0, 0.0, 0.1, 0.0, 0.0, 0.0],
+                # motion_control_axes_task=[1, 0, 1, 1, 1, 1],
+                # contact_wrench_control_axes_task=[0, 1, 0, 0, 0, 0],
+                
                 inertial_dynamics_decoupling=True,
                 partial_inertial_dynamics_decoupling=False,
-                gravity_compensation=False,
-                motion_stiffness_task=100.0,
-                motion_damping_ratio_task=1.0,
-                motion_stiffness_limits_task=(50.0, 200.0),
+                gravity_compensation=True,
                 nullspace_control="position",
+                nullspace_stiffness=1.0,
             ),
             nullspace_joint_pos_target="center",
             position_scale=1.0,
             orientation_scale=1.0,
-            stiffness_scale=100.0,
+            # stiffness_scale=100.0,
         )
         
-        # Add a separate action for controlling the hand fingers
+        # Add a separate action for controlling the hand fingers 
+        # dim: 16 joints
         self.actions.hand_action = mdp.EMAJointPositionToLimitsActionCfg(
             asset_name="robot",
             joint_names=["^a_.*$"],  # Leap hand joints
@@ -91,41 +77,9 @@ class xArmLeapCubeEnvCfg(inair_env_cfg.InAirObjectEnvCfg):
             rescale_to_limits=True,
         )
 
-        # Remove joint position and velocity observations as they are not needed for OSC
-        self.observations.policy.joint_pos = None
-        self.observations.policy.joint_vel = None
-
 
 @configclass
 class xArmLeapCubeEnvCfg_PLAY(xArmLeapCubeEnvCfg):
-    def __post_init__(self):
-        # post init of parent
-        super().__post_init__()
-        # make a smaller scene for play
-        self.scene.num_envs = 50
-        # disable randomization for play
-        self.observations.policy.enable_corruption = False
-        # remove termination due to timeouts
-        self.terminations.time_out = None
-
-
-##
-# Environment configuration with no velocity observations.
-##
-
-
-@configclass
-class xArmLeapCubeNoVelObsEnvCfg(xArmLeapCubeEnvCfg):
-    def __post_init__(self):
-        # post init of parent
-        super().__post_init__()
-
-        # switch observation group to no velocity group
-        self.observations.policy = inair_env_cfg.ObservationsCfg.NoVelocityKinematicObsGroupCfg()
-
-
-@configclass
-class xArmLeapCubeNoVelObsEnvCfg_PLAY(xArmLeapCubeNoVelObsEnvCfg):
     def __post_init__(self):
         # post init of parent
         super().__post_init__()

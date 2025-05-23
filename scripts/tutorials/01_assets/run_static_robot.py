@@ -16,6 +16,7 @@
 
 
 import argparse
+import math
 
 from isaaclab.app import AppLauncher
 
@@ -39,6 +40,8 @@ import isaacsim.core.utils.prims as prim_utils
 import isaaclab.sim as sim_utils
 from isaaclab.assets import Articulation
 from isaaclab.sim import SimulationContext
+from isaaclab.actuators.actuator_cfg import ImplicitActuatorCfg
+from isaaclab.assets.articulation.articulation_cfg import ArticulationCfg
 
 ##
 # Pre-defined configs
@@ -66,7 +69,48 @@ def design_scene() -> tuple[dict, list[list[float]]]:
     # Articulation
     xarm_leap_cfg = XARM_LEAP_HAND_CFG
     xarm_leap_cfg.prim_path = "/World/Origin.*/Robot"
+    xarm_leap_cfg.actuators= {
+        "arm": ImplicitActuatorCfg(
+            joint_names_expr=["^joint[1-7]$"],  # xArm joints
+            effort_limit=0.0,
+            velocity_limit=0.0,
+            stiffness=0.0,
+            damping=0.0,
+        ),
+        "hand": ImplicitActuatorCfg(
+            joint_names_expr=["^a_.*$"],  # Leap hand joints like a_0 ~ a_15
+            effort_limit=0.0,
+            velocity_limit=0.0,
+            stiffness=0.0,
+            damping=0.0,
+            friction=0.0,
+        ),
+    }
+    
+    xarm_leap_cfg.init_state=ArticulationCfg.InitialStateCfg(
+        pos=(0.0, -0.19, 0.50),
+        rot=(1.0, 0.0, 0.0, 0.0),
+        joint_pos={
+            # xArm joints
+            "joint1": -1.0,
+            "joint2": -0.4,     # 让上臂抬起来一点
+            "joint3": 0.8,      # 前臂自然伸出
+            "joint4": 1.2,      # 手腕抬起
+            "joint5": 3.0,      # 接近 180°，让掌面转向上
+            "joint6": 1.57,     # 手心朝上
+            "joint7": 0.3,      # 稍微偏转末端方向，避免奇异
+
+            # hand joints
+            "^a_.*$": 0.0,
+        },
+    )
     xarm_leap = Articulation(cfg=xarm_leap_cfg)
+
+    # # Disable gravity
+    # current_gravity_status = xarm_leap.root_physx_view.get_disable_gravities()
+    # current_gravity_status = torch.ones_like(current_gravity_status)  # set to 1 means distable gravity, 0 otherwise
+    # env_ids = torch.arange(len(current_gravity_status), device=current_gravity_status.device)
+    # xarm_leap.root_physx_view.set_disable_gravities(current_gravity_status, env_ids)
 
     # return the scene information
     scene_entities = {"xarm_leap": xarm_leap}
@@ -114,7 +158,7 @@ def run_simulator(sim: sim_utils.SimulationContext, entities: dict[str, Articula
         # -- apply action to the robot
         # robot.set_joint_effort_target(efforts)
         # -- write data to sim
-        robot.write_data_to_sim()
+        # robot.write_data_to_sim()
         # Perform step
         sim.step()
         # Increment counter
@@ -135,6 +179,12 @@ def main():
     scene_origins = torch.tensor(scene_origins, device=sim.device)
     # Play the simulator
     sim.reset()
+    
+    # Disable gravity
+    current_gravity_status = scene_entities["xarm_leap"].root_physx_view.get_disable_gravities()
+    current_gravity_status = torch.ones_like(current_gravity_status)  # set to 1 means distable gravity, 0 otherwise
+    env_ids = torch.arange(len(current_gravity_status), device=current_gravity_status.device)
+    scene_entities["xarm_leap"].root_physx_view.set_disable_gravities(current_gravity_status, env_ids)
     # Now we are ready!
     print("[INFO]: Setup complete...")
     # Run the simulator

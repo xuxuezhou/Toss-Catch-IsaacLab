@@ -40,15 +40,15 @@ gym.register(
 )
 
 ##
-# Kinematic state observations without velocity information.
+# Full kinematic state observations with FSM Reward.
 ##
 
 gym.register(
-    id="Isaac-Repose-Cube-xArm-Leap-NoVelObs-v0",
-    entry_point="isaaclab.envs:ManagerBasedRLEnv",
+    id="Isaac-Repose-Cube-xArm-Leap-FSM-v0",
+    entry_point="isaaclab.envs:ManagerBasedRLFSMEnv",
     disable_env_checker=True,
     kwargs={
-        "env_cfg_entry_point": f"{__name__}.xarm_leap_env_cfg:xArmLeapCubeNoVelObsEnvCfg",
+        "env_cfg_entry_point": f"{__name__}.xarm_leap_env_cfg:xArmLeapCubeEnvCfg",
         "rsl_rl_cfg_entry_point": f"{agents.__name__}.rsl_rl_ppo_cfg:xArmLeapCubePPORunnerCfg",
         "rl_games_cfg_entry_point": f"{agents.__name__}:rl_games_ppo_cfg.yaml",
         "skrl_cfg_entry_point": f"{agents.__name__}:skrl_ppo_cfg.yaml",
@@ -56,12 +56,12 @@ gym.register(
 )
 
 gym.register(
-    id="Isaac-Repose-Cube-xArm-Leap-NoVelObs-Play-v0",
-    entry_point="isaaclab.envs:ManagerBasedRLEnv",
+    id="Isaac-Repose-Cube-xArm-Leap-Play-FSM-v0",
+    entry_point="isaaclab.envs:ManagerBasedRLFSMEnv",
     disable_env_checker=True,
     kwargs={
-        "env_cfg_entry_point": f"{__name__}.leap_env_cfg:xArmLeapCubeNoVelObsEnvCfg_PLAY",
-        "rsl_rl_cfg_entry_point": f"{agents.__name__}.rsl_rl_ppo_cfg:xArmLeapCubeNoVelObsPPORunnerCfg",
+        "env_cfg_entry_point": f"{__name__}.xarm_leap_env_cfg:xArmLeapCubeEnvCfg_PLAY",
+        "rsl_rl_cfg_entry_point": f"{agents.__name__}.rsl_rl_ppo_cfg:xArmLeapCubePPORunnerCfg",
         "rl_games_cfg_entry_point": f"{agents.__name__}:rl_games_ppo_cfg.yaml",
         "skrl_cfg_entry_point": f"{agents.__name__}:skrl_ppo_cfg.yaml",
     },

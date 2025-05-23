@@ -12,6 +12,7 @@ import isaaclab.utils.math as math_utils
 from isaaclab.assets import RigidObject
 from isaaclab.envs import ManagerBasedRLEnv
 from isaaclab.managers import SceneEntityCfg
+from isaaclab.assets.articulation.articulation import Articulation
 
 if TYPE_CHECKING:
     from .commands import InAirReOrientationCommand
@@ -79,3 +80,98 @@ def initial_root_quat_w(
     identity_quat = torch.zeros_like(asset.data.root_quat_w)
     identity_quat[:, 0] = 1.0  # Set w component to 1 for identity quaternion
     return identity_quat
+
+def end_effector_pos(
+    env: ManagerBasedRLEnv, 
+    robot_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+) -> torch.Tensor:
+    """Get the end effector position in the world frame.
+    
+    Args:
+        env: The environment object.
+        robot_cfg: The configuration for the robot entity. Default is "robot".
+        link_index: The index of the end effector link. Default is 6 (palm link).
+        
+    Returns:
+        The end effector position in the world frame.
+    """
+    robot = env.scene[robot_cfg.name]
+    link_state = robot.data.body_link_state_w[:, 6]
+    end_effector_pos = link_state[:, :3]
+    
+    return end_effector_pos
+
+def end_effector_lin_vel(
+    env: ManagerBasedRLEnv, 
+    robot_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+) -> torch.Tensor:
+    """Get the end effector velocity in the world frame.
+    
+    Args:
+        env: The environment object.
+        robot_cfg: The configuration for the robot entity. Default is "robot".
+        link_index: The index of the end effector link. Default is 6 (palm link).
+        
+    Returns:
+        The end effector velocity in the world frame.
+    """
+    robot = env.scene[robot_cfg.name]
+    link_state = robot.data.body_link_state_w[:, 6] 
+    end_effector_lin_vel = link_state[:, 7:10] # [pos, quat, lin_vel, ang_vel]
+    
+    return end_effector_lin_vel
+
+def end_effector_ang_vel(
+    env: ManagerBasedRLEnv, 
+    robot_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+) -> torch.Tensor:
+    """Get the end effector velocity in the world frame.
+    
+    Args:
+        env: The environment object.
+        robot_cfg: The configuration for the robot entity. Default is "robot".
+        link_index: The index of the end effector link. Default is 6 (palm link).
+        
+    Returns:
+        The end effector velocity in the world frame.
+    """
+    robot = env.scene[robot_cfg.name]
+    link_state = robot.data.body_link_state_w[:, 6] 
+    end_effector_ang_vel = link_state[:, 10:] # [pos, quat, lin_vel, ang_vel]
+    
+    return end_effector_ang_vel
+
+def hand_joint_pos_limit_normalized(
+    env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
+) -> torch.Tensor:
+    """The joint positions of the asset normalized with the asset's joint limits.
+
+    Note: Only the joints configured in :attr:`asset_cfg.joint_ids` will have their normalized positions returned.
+    """
+    asset: Articulation = env.scene[asset_cfg.name]
+    return math_utils.scale_transform(
+        asset.data.joint_pos[:, asset_cfg.joint_ids][:,7:],
+        asset.data.soft_joint_pos_limits[:, asset_cfg.joint_ids, 0][:,7:],
+        asset.data.soft_joint_pos_limits[:, asset_cfg.joint_ids, 1][:,7:],
+    )
+
+def hand_joint_vel_rel(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")):
+    """The joint velocities of the asset w.r.t. the default joint velocities.
+
+    Note: Only the joints configured in :attr:`asset_cfg.joint_ids` will have their velocities returned.
+    """
+    # extract the used quantities (to enable type-hinting)
+    asset: Articulation = env.scene[asset_cfg.name]
+    return asset.data.joint_vel[:, asset_cfg.joint_ids][:,7:] - asset.data.default_joint_vel[:, asset_cfg.joint_ids][:,7:]
+
+
+def contact_forces_obs(env: ManagerBasedRLEnv, sensor_cfg: SceneEntityCfg) -> torch.Tensor:
+    """Returns contact force as observation per environment."""
+    contact_sensor = env.scene.sensors[sensor_cfg.name]
+    
+    # shape: [num_envs, num_bodies, 3]
+    net_contact_forces = contact_sensor.data.net_forces_w[:, sensor_cfg.body_ids, :]
+
+    # flatten to shape: [num_envs, num_bodies * 3]
+    return net_contact_forces.reshape(env.num_envs, -1)
+

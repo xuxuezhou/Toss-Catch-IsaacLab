@@ -7,23 +7,28 @@ from __future__ import annotations
 
 from dataclasses import MISSING
 
+from isaaclab.envs.manager_based_rl_fsm_env_cfg import ManagerBasedRLFSMEnvCfg
 import isaaclab.sim as sim_utils
 from isaaclab.assets import ArticulationCfg, AssetBaseCfg, RigidObjectCfg
-from isaaclab.envs import ManagerBasedRLEnvCfg
+from isaaclab.envs import ManagerBasedRLEnv
+from isaaclab.envs import ManagerBasedRLFSMEnv
 from isaaclab.managers import EventTermCfg as EventTerm
 from isaaclab.managers import ObservationGroupCfg as ObsGroup
 from isaaclab.managers import ObservationTermCfg as ObsTerm
 from isaaclab.managers import RewardTermCfg as RewTerm
+from isaaclab.managers import CurriculumTermCfg as CurrTerm
 from isaaclab.managers import SceneEntityCfg
 from isaaclab.managers import TerminationTermCfg as DoneTerm
 from isaaclab.scene import InteractiveSceneCfg
 from isaaclab.sim.simulation_cfg import PhysxCfg, SimulationCfg
+from isaaclab.sim.spawners.from_files.from_files_cfg import GroundPlaneCfg
 from isaaclab.sim.spawners.materials.physics_materials_cfg import RigidBodyMaterialCfg
 from isaaclab.utils import configclass
 from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR
 from isaaclab.utils.noise import AdditiveGaussianNoiseCfg as Gnoise
 from isaaclab.controllers.operational_space_cfg import OperationalSpaceControllerCfg
 from isaaclab.envs.mdp.actions.actions_cfg import OperationalSpaceControllerActionCfg
+from isaaclab.sensors.contact_sensor.contact_sensor_cfg import ContactSensorCfg
 
 import isaaclab_tasks.manager_based.manipulation.inair.mdp as mdp
 
@@ -43,9 +48,11 @@ class InAirObjectSceneCfg(InteractiveSceneCfg):
     object: RigidObjectCfg = RigidObjectCfg(
         prim_path="{ENV_REGEX_NS}/object",
         spawn=sim_utils.UsdFileCfg(
-            usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/DexCube/dex_cube_instanceable.usd",
-            # usd_path=f"/home/xuxuezhou/og_dataset/og_objects/pool_ball/uoirje/usd",
-            scale=(1.5, 1.5, 1.5),
+            # usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/DexCube/dex_cube_instanceable.usd",
+            usd_path=f"/home/xuxuezhou/isaac-sim-assets-1/Assets/Isaac/4.5/Isaac/Props/Blocks/DexCube/dex_cube_instanceable.usd",
+            # usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Shapes/sphere_physics.usd",
+            # usd_path=f"/home/xuxuezhou/isaac-sim-assets-1/Assets/Isaac/4.5/Isaac/Props/Shapes/sphere_physics.usd",
+            scale=(2.5, 2.5, 2.5),
             rigid_props=sim_utils.RigidBodyPropertiesCfg(
                 kinematic_enabled=False,
                 disable_gravity=False,
@@ -59,10 +66,27 @@ class InAirObjectSceneCfg(InteractiveSceneCfg):
             mass_props=sim_utils.MassPropertiesCfg(density=400.0),
         ),
         init_state=RigidObjectCfg.InitialStateCfg(
-            # pos=(0.0, -0.19, 0.56), 
-            pos=(0.55, -0.18, 1.32),
+            # pos=(0.4, -0.4,  1.3), # 2*2*2
+            # pos=(0.4, -0.4,  1.0), # 3*3*3
+            pos=(0.4, -0.4,  0.8), # 3*3*3 inhand
             rot=(1.0, 0.0, 0.0, 0.0)
         ),
+    )
+    
+    # contact sensor
+    sensor = ContactSensorCfg(
+        prim_path="{ENV_REGEX_NS}/Robot/palm_lower", 
+        update_period=0.0, 
+        history_length=6, 
+        debug_vis=True,
+        filter_prim_paths_expr=["{ENV_REGEX_NS}/object", "{ENV_REGEX_NS}/Robot"],
+    )
+    
+    # plane
+    plane = AssetBaseCfg(
+        prim_path="/World/GroundPlane",
+        init_state=AssetBaseCfg.InitialStateCfg(pos=[0, 0, 0]),
+        spawn=GroundPlaneCfg(),
     )
 
     # lights
@@ -91,8 +115,9 @@ class CommandsCfg:
         init_pos_offset=(0.0, 0.0, 0.0),
         update_goal_on_success=True,
         orientation_success_threshold=0.1,
-        make_quat_unique=False,
-        marker_pos_offset=(0.0, 0.0, 0.0),
+        velocity_success_threshold=0.0001,
+        make_quat_unique=True,
+        marker_pos_offset=(0.0, 0.0, 0.5),
         debug_vis=True,
     )
 
@@ -125,8 +150,13 @@ class ObservationsCfg:
 
         # observation terms (order preserved)
         # -- robot terms
-        joint_pos = ObsTerm(func=mdp.joint_pos_limit_normalized, noise=Gnoise(std=0.005))
-        joint_vel = ObsTerm(func=mdp.joint_vel_rel, scale=0.2, noise=Gnoise(std=0.01))
+        hand_joint_pos = ObsTerm(func=mdp.hand_joint_pos_limit_normalized, noise=Gnoise(std=0.005))
+        hand_joint_vel = ObsTerm(func=mdp.hand_joint_vel_rel, scale=0.2, noise=Gnoise(std=0.01))
+        
+        end_effector_pos = ObsTerm(func=mdp.end_effector_pos)
+        end_effector_lin_vel = ObsTerm(func=mdp.end_effector_lin_vel)
+        end_effector_ang_vel = ObsTerm(func=mdp.end_effector_ang_vel)
+        
 
         # -- object terms
         object_pos = ObsTerm(
@@ -151,128 +181,71 @@ class ObservationsCfg:
             func=mdp.goal_quat_diff,
             params={"asset_cfg": SceneEntityCfg("object"), "command_name": "object_pose", "make_quat_unique": False},
         )
+        
+        contact_forces = ObsTerm(
+            func=mdp.contact_forces_obs,
+            params={"sensor_cfg": SceneEntityCfg(name="sensor") },
+        )
 
-        # -- action terms
-        last_action = ObsTerm(func=mdp.last_action)
+        # # -- action terms
+        # last_action = ObsTerm(func=mdp.last_action)
 
         def __post_init__(self):
             self.enable_corruption = True
             self.concatenate_terms = True
-
-    @configclass
-    class NoVelocityKinematicObsGroupCfg(KinematicObsGroupCfg):
-        """Observations with partial kinematic state information.
-
-        In contrast to the full-kinematic state group, this group does not include velocity information
-        about the robot joints and the object root frame. This is useful for tasks where velocity information
-        is not available or has a lot of noise.
-        """
-
-        def __post_init__(self):
-            # call parent post init
-            super().__post_init__()
-            # set unused terms to None
-            self.joint_vel = None
-            self.object_lin_vel = None
-            self.object_ang_vel = None
-
-    @configclass
-    class InitialPoseOnlyObsGroupCfg(KinematicObsGroupCfg):
-        """Observations that only include initial pose and orientation.
-
-        This group only reads the initial pose and orientation of the object, and returns zeros for subsequent steps.
-        """
-
-        def __post_init__(self):
-            # call parent post init
-            super().__post_init__()
-            # set unused terms to None
-            self.joint_vel = None
-            self.object_lin_vel = None
-            self.object_ang_vel = None
-            # Override object pose and orientation terms to use initial-only versions
-            self.object_pos = ObsTerm(
-                func=mdp.initial_root_pos_w, noise=Gnoise(std=0.002), params={"asset_cfg": SceneEntityCfg("object")}
-            )
-            self.object_quat = ObsTerm(
-                func=mdp.initial_root_quat_w, params={"asset_cfg": SceneEntityCfg("object"), "make_quat_unique": False}
-            )
-
+            
     # observation groups
     policy: KinematicObsGroupCfg = KinematicObsGroupCfg()
-    # policy: InitialPoseOnlyObsGroupCfg = InitialPoseOnlyObsGroupCfg()
 
 
 @configclass
 class EventCfg:
     """Configuration for randomization."""
 
-    # startup
-    # -- robot
-    robot_physics_material = EventTerm(
-        func=mdp.randomize_rigid_body_material,
-        mode="startup",
-        params={
-            "asset_cfg": SceneEntityCfg("robot", body_names=".*"),
-            "static_friction_range": (0.7, 1.3),
-            "dynamic_friction_range": (0.7, 1.3),
-            "restitution_range": (0.0, 0.0),
-            "num_buckets": 250,
-        },
-    )
-    robot_scale_mass = EventTerm(
-        func=mdp.randomize_rigid_body_mass,
-        mode="startup",
-        params={
-            "asset_cfg": SceneEntityCfg("robot", body_names=".*"),
-            "mass_distribution_params": (0.95, 1.05),
-            "operation": "scale",
-        },
-    )
-    robot_joint_stiffness_and_damping = EventTerm(
-        func=mdp.randomize_actuator_gains,
-        mode="startup",
-        params={
-            "asset_cfg": SceneEntityCfg("robot", joint_names=".*"),
-            "stiffness_distribution_params": (0.3, 3.0),  # default: 3.0
-            "damping_distribution_params": (0.75, 1.5),  # default: 0.1
-            "operation": "scale",
-            "distribution": "log_uniform",
-        },
-    )
-
     # -- object
-    object_physics_material = EventTerm(
-        func=mdp.randomize_rigid_body_material,
-        mode="startup",
-        params={
-            "asset_cfg": SceneEntityCfg("object", body_names=".*"),
-            "static_friction_range": (0.7, 1.3),
-            "dynamic_friction_range": (0.7, 1.3),
-            "restitution_range": (0.0, 0.0),
-            "num_buckets": 250,
-        },
-    )
-    object_scale_mass = EventTerm(
-        func=mdp.randomize_rigid_body_mass,
-        mode="startup",
-        params={
-            "asset_cfg": SceneEntityCfg("object"),
-            "mass_distribution_params": (0.4, 1.6),
-            "operation": "scale",
-        },
-    )
+    # object_physics_material = EventTerm(
+    #     func=mdp.randomize_rigid_body_material,
+    #     mode="startup",
+    #     params={
+    #         "asset_cfg": SceneEntityCfg("object", body_names=".*"),
+    #         "static_friction_range": (0.7, 1.3),
+    #         "dynamic_friction_range": (0.7, 1.3),
+    #         "restitution_range": (0.0, 0.0),
+    #         "num_buckets": 250,
+    #     },
+    # )
+    # object_scale_mass = EventTerm(
+    #     func=mdp.randomize_rigid_body_mass,
+    #     mode="startup",
+    #     params={
+    #         "asset_cfg": SceneEntityCfg("object"),
+    #         "mass_distribution_params": (0.4, 1.6),
+    #         "operation": "scale",
+    #     },
+    # )
 
     # reset
     reset_object = EventTerm(
         func=mdp.reset_root_state_uniform,
         mode="reset",
         params={
-            "pose_range": {"x": [-0.01, 0.01], "y": [-0.01, 0.01], "z": [-0.01, 0.01]},
+            "pose_range": {"x": [0.0, 0.0], "y": [0.0, 0.0], "z": [0.0, 0.0]},  
             "velocity_range": {},
             "asset_cfg": SceneEntityCfg("object", body_names=".*"),
         },
     )
+    # reset_object = EventTerm(
+    #     func=mdp.reset_object_above_palm,
+    #     mode="reset",
+    #     params={
+    #         "pose_range": {
+    #             "x": [0.2, 0.2],  # Small random offset in x
+    #             "y": [0.0, 0.0],  # Small random offset in y
+    #             "z": [0.2, 0.2],    # Offset above palm between 5-10cm
+    #         },
+    #         "asset_cfg": SceneEntityCfg("object", body_names=".*"),
+    #     },
+    # )
     reset_robot_joints = EventTerm(
         func=mdp.reset_joints_within_limits_range,
         mode="reset",
@@ -293,38 +266,92 @@ class EventCfg:
 @configclass
 class RewardsCfg:
     """Reward terms for the MDP."""
+    
+    dummy_reward = RewTerm(
+        func=mdp.dummy_reward,
+        weight=1.0,
+        params={},
+    )
 
     # -- task
-    track_position_inv_l2 = RewTerm(
-        func=mdp.track_position_inv_l2,
-        weight=1.0,
-        params={"object_cfg": SceneEntityCfg("object"), "pos_eps": 0.1, "command_name": "object_pose"},
-    )
-    track_orientation_inv_l2 = RewTerm(
-        func=mdp.track_orientation_inv_l2,
-        weight=1.0,
-        params={"object_cfg": SceneEntityCfg("object"), "rot_eps": 0.1, "command_name": "object_pose"},
-    )
-    success_bonus = RewTerm(
-        func=mdp.success_bonus,
-        weight=250.0,
-        params={"object_cfg": SceneEntityCfg("object"), "command_name": "object_pose"},
-    )
+    # track_position_inv_l2 = RewTerm(
+    #     func=mdp.track_position_inv_l2,
+    #     weight=0.1,
+    #     params={"object_cfg": SceneEntityCfg("object"), "pos_eps": 0.1, "command_name": "object_pose"},
+    # )
+    # track_orientation_inv_l2 = RewTerm(
+    #     func=mdp.track_orientation_inv_l2,
+    #     # weight=40,
+    #     weight=100,
+    #     params={"object_cfg": SceneEntityCfg("object"), "rot_eps": 0.1, "command_name": "object_pose"},
+    # )
+    # track_delta_orientation_l2 = RewTerm(
+    #     func=mdp.track_delta_orientation_l2,
+    #     # weight=20.0,
+    #     # weight=200.0,
+    #     weight=2000.0, 
+    #     params={"object_cfg": SceneEntityCfg("object"), "command_name": "object_pose"},
+    # )
+    # above_palm = RewTerm(
+    #     func=mdp.above_palm,
+    #     weight=50.0,
+    #     params={"asset_cfg": SceneEntityCfg("robot"), "object_cfg": SceneEntityCfg("object")},
+    # )
+    # success_bonus = RewTerm(
+    #     func=mdp.success_bonus,
+    #     weight=300.0,
+    #     params={"object_cfg": SceneEntityCfg("object"), "command_name": "object_pose"},
+    # )
+    
+    # airborne_rotation_bonus = RewTerm(
+    #     func=mdp.airborne_rotation_bonus,
+    #     weight=160.0,
+    #     params={"object_cfg": SceneEntityCfg("object")},
+    # )
+    
+    # # -- Encourage throwing and rotation
+    # throwing_bonus = RewTerm(
+    #     func=mdp.object_away_from_palm,
+    #     weight=1.0,
+    #     params={"threshold": 0.05},
+    # )
+    # object_ang_vel_bonus = RewTerm(
+    #     func=mdp.angular_velocity_bonus,
+    #     weight=0.01,
+    #     params={"asset_cfg": SceneEntityCfg("object")},
+    # )
 
     # -- penalties
-    velocity_penalty = RewTerm(
-        func=mdp.velocity_penalty,
-        weight=-10.0,
-        params={"object_cfg": SceneEntityCfg("object"), "velocity_threshold": 0.01, "command_name": "object_pose"},
-    )
-    acceleration_penalty = RewTerm(
-        func=mdp.acceleration_penalty,
-        weight=-10.0,
-        params={"object_cfg": SceneEntityCfg("object"), "acceleration_threshold": 0.01, "command_name": "object_pose"},
-    )
-    joint_vel_l2 = RewTerm(func=mdp.joint_vel_l2, weight=-2.5e-5)
-    action_l2 = RewTerm(func=mdp.action_l2, weight=-0.0001)
-    action_rate_l2 = RewTerm(func=mdp.action_rate_l2, weight=-0.01)
+    
+    # palm_drop_penalty = RewTerm(
+    #     func=mdp.palm_drop_penalty,
+    #     weight=-50.0,
+    #     params={
+    #         "asset_cfg": SceneEntityCfg("robot"),
+    #         "init_pos_z": 0.58,
+    #     },
+    # )
+    
+    # velocity_penalty = RewTerm(
+    #     func=mdp.velocity_penalty,
+    #     weight=-10.0,
+    #     params={"object_cfg": SceneEntityCfg("object"), "velocity_threshold": 0.01, "command_name": "object_pose"},
+    # )
+    # acceleration_penalty = RewTerm(
+    #     func=mdp.acceleration_penalty,
+    #     weight=-10.0,
+    #     params={"object_cfg": SceneEntityCfg("object"), "acceleration_threshold": 0.01, "command_name": "object_pose"},
+    # )
+    # object_dropping_penalty: RewTerm = RewTerm(
+    #     func=mdp.object_away_from_palm,
+    #     weight=-1.0,
+    #     params={"threshold": 0.3},
+    # ) 
+    # joint_vel_l2 = RewTerm(func=mdp.joint_vel_l2, weight=-2.5e-5)
+    
+    # action_l2 = RewTerm(func=mdp.hand_action_l2, weight=-0.01)
+    # action_l2 = RewTerm(func=mdp.arm_action_l2, weight=-0.01)
+    # action_rate_l2 = RewTerm(func=mdp.hand_action_rate_l2, weight=-0.1)
 
     # -- optional penalties (these are disabled by default)
     # object_away_penalty = RewTerm(
@@ -346,12 +373,28 @@ class TerminationsCfg:
     )
 
     # object_out_of_reach = DoneTerm(func=mdp.object_away_from_robot, params={"threshold": 0.3})
-    object_out_of_reach = DoneTerm(func=mdp.object_away_from_palm, params={"threshold": 0.3})
+    object_on_floor = DoneTerm(func=mdp.land_on_floor)
 
     # object_out_of_reach = DoneTerm(
     #     func=mdp.object_away_from_goal, params={"threshold": 0.24, "command_name": "object_pose"}
     # )
 
+# @configclass
+# class CurriculumCfg:
+#     """Curriculum terms for the MDP."""
+
+#     track_position_inv_l2 = CurrTerm(
+#         func=mdp.modify_reward_weight, params={"term_name": "track_position_inv_l2", "weight": 10, "num_steps": 2000}
+#     )
+#     track_orientation_inv_l2 = CurrTerm(
+#         func=mdp.modify_reward_weight, params={"term_name": "track_orientation_inv_l2", "weight": 10, "num_steps": 2000}
+#     )
+#     throwing_bonus = CurrTerm(
+#         func=mdp.modify_reward_weight, params={"term_name": "throwing_bonus", "weight": 5, "num_steps": 2000}
+#     )
+#     success_bonus = CurrTerm(
+#         func=mdp.modify_reward_weight, params={"term_name": "success_bonus", "weight": 250, "num_steps": 2000}
+#     )
 
 ##
 # Environment configuration
@@ -359,8 +402,8 @@ class TerminationsCfg:
 
 
 @configclass
-class InAirObjectEnvCfg(ManagerBasedRLEnvCfg):
-    """Configuration for the in hand reorientation environment."""
+class InAirObjectEnvCfg(ManagerBasedRLFSMEnvCfg):
+    """Configuration for the in air reorientation environment."""
 
     # Scene settings
     scene: InAirObjectSceneCfg = InAirObjectSceneCfg(num_envs=8192, env_spacing=1.0)
@@ -384,6 +427,7 @@ class InAirObjectEnvCfg(ManagerBasedRLEnvCfg):
     rewards: RewardsCfg = RewardsCfg()
     terminations: TerminationsCfg = TerminationsCfg()
     events: EventCfg = EventCfg()
+    # curriculum: CurriculumCfg = CurriculumCfg()
 
     def __post_init__(self):
         """Post initialization."""

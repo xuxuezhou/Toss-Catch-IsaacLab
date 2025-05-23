@@ -89,9 +89,9 @@ def object_away_from_palm(
     asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
     object_cfg: SceneEntityCfg = SceneEntityCfg("object"),
 ) -> torch.Tensor:
-    """Check if object has gone far from the robot's palm (link7).
+    """Check if object has gone far from the robot's palm (palm_lower).
 
-    The object is considered to be out-of-reach if the distance between the robot's palm (link7) and the object is greater
+    The object is considered to be out-of-reach if the distance between the robot's palm (palm_lower) and the object is greater
     than the threshold.
 
     Args:
@@ -104,10 +104,36 @@ def object_away_from_palm(
     robot = env.scene[asset_cfg.name]
     object = env.scene[object_cfg.name]
     
-    link7_state = robot.data.body_link_state_w[:, 6]  # 0-based indexing, so 6 is the 7th link
-    link7_pos = link7_state[:, :3]  # first 3 elements are position
+    palm_lower_state = robot.data.body_link_state_w[:, 10]  # 0-based indexing, so 6 is the 7th link
+    palm_lower_pos = palm_lower_state[:, :3]  # first 3 elements are position
 
     # compute distance
-    dist = torch.norm(link7_pos - object.data.root_pos_w, dim=1)
+    dist = torch.norm(palm_lower_pos - object.data.root_pos_w, dim=1)
 
     return dist > threshold
+
+
+def land_on_floor(
+    env: ManagerBasedRLEnv,
+    object_cfg: SceneEntityCfg = SceneEntityCfg("object"),
+    plane_cfg: SceneEntityCfg = SceneEntityCfg("plane"),
+) -> torch.Tensor:
+    """Check if object has land on the floor.
+
+    The task is considered to be failure if the object is on the floor.
+
+    Args:
+        env: The environment object.
+        object_cfg: The configuration for the object entity. Default is "object".
+        plane_cfg: The configuration for the plane entity. Default is "plane".
+    """
+    object = env.scene[object_cfg.name]
+    plane = env.scene[plane_cfg.name]
+    object_pos_z = object.data.root_pos_w[:, 2]
+    
+    plane_pos, _ = plane.get_world_poses()
+    plane_pos_z = plane_pos[:, 2] + 0.1
+    plane_pos_z_expanded = plane_pos_z.expand_as(object_pos_z)
+    
+    return object_pos_z <= plane_pos_z_expanded
+    

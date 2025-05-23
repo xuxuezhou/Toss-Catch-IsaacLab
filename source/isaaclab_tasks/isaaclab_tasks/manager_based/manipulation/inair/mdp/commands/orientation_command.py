@@ -23,14 +23,11 @@ if TYPE_CHECKING:
 
 
 class InAirReOrientationCommand(CommandTerm):
-    """Command term that generates 3D pose commands for in-hand manipulation task.
+    """Command term that generates 3D pose commands for in-air manipulation task.
 
     This command term generates 3D orientation commands for the object. The orientation commands
     are sampled uniformly from the 3D orientation space. The position commands are the default
     root state of the object.
-
-    The constant position commands is to encourage that the object does not move during the task.
-    For instance, the object should not fall off the robot's palm.
 
     Unlike typical command terms, where the goals are resampled based on time, this command term
     does not resample the goals based on time. Instead, the goals are resampled when the object
@@ -56,10 +53,8 @@ class InAirReOrientationCommand(CommandTerm):
 
         # create buffers to store the command
         # -- command: (x, y, z)
-        initial_pos = [0.55, -0.18, 1.32]
-        self.pos_command_e = torch.tensor(initial_pos, device=self.device).repeat(self.num_envs, 1)
-        # init_pos_offset = torch.tensor(cfg.init_pos_offset, dtype=torch.float, device=self.device)
-        # self.pos_command_e = self.object.data.default_root_state[:, :3] + init_pos_offset
+        init_pos_offset = torch.tensor(cfg.init_pos_offset, dtype=torch.float, device=self.device)
+        self.pos_command_e = self.object.data.default_root_state[:, :3] + init_pos_offset
         self.pos_command_w = self.pos_command_e + self._env.scene.env_origins
         # -- orientation: (w, x, y, z)
         self.quat_command_w = torch.zeros(self.num_envs, 4, device=self.device)
@@ -72,7 +67,7 @@ class InAirReOrientationCommand(CommandTerm):
 
         # -- metrics
         self.metrics["orientation_error"] = torch.zeros(self.num_envs, device=self.device)
-        self.metrics["position_error"] = torch.zeros(self.num_envs, device=self.device)
+        self.metrics["previous_orientation_error"] = torch.zeros(self.num_envs, device=self.device)
         self.metrics["consecutive_success"] = torch.zeros(self.num_envs, device=self.device)
 
     def __str__(self) -> str:
@@ -95,12 +90,13 @@ class InAirReOrientationCommand(CommandTerm):
 
     def _update_metrics(self):
         # logs data
+        # -- store the previous orientation error before updating
+        self.metrics["previous_orientation_error"] = self.metrics["orientation_error"].clone()
+        
         # -- compute the orientation error
         self.metrics["orientation_error"] = math_utils.quat_error_magnitude(
             self.object.data.root_quat_w, self.quat_command_w
         )
-        # -- compute the position error
-        self.metrics["position_error"] = torch.norm(self.object.data.root_pos_w - self.pos_command_w, dim=1)
         
         # -- compute velocity magnitude (both linear and angular)
         lin_vel = self.object.data.root_lin_vel_w
@@ -114,12 +110,9 @@ class InAirReOrientationCommand(CommandTerm):
         
         # -- compute the number of consecutive successes
         # Check all conditions: orientation error, velocity, and acceleration
-        orientation_success = self.metrics["orientation_error"] < self.cfg.orientation_success_threshold
-        velocity_success = self.metrics["velocity_magnitude"] < 0.01  # threshold for velocity
-        acceleration_success = self.metrics["acceleration_magnitude"] < 0.01  # threshold for acceleration
+        successes = self._check_success()
         
         # All conditions must be met for success
-        successes = orientation_success & velocity_success & acceleration_success
         self.metrics["consecutive_success"] += successes.float()
 
     def _resample_command(self, env_ids: Sequence[int]):
@@ -137,10 +130,20 @@ class InAirReOrientationCommand(CommandTerm):
         # update the command if goal is reached
         if self.cfg.update_goal_on_success:
             # compute the goal resets
-            goal_resets = self.metrics["orientation_error"] < self.cfg.orientation_success_threshold
+            goal_resets = self._check_success()
             goal_reset_ids = goal_resets.nonzero(as_tuple=False).squeeze(-1)
             # resample the goals
             self._resample(goal_reset_ids)
+    
+    def _check_success(self):
+        # Condition 1: check orientation error
+        orientation_success = self.metrics["orientation_error"] < self.cfg.orientation_success_threshold
+        
+        # Condition 2: check stability
+        velocity_success = self.metrics["velocity_magnitude"] < self.cfg.velocity_success_threshold  # threshold for velocity
+        
+        goal_resets = orientation_success & velocity_success
+        return goal_resets
 
     def _set_debug_vis_impl(self, debug_vis: TYPE_CHECKING):
         # set visibility of markers

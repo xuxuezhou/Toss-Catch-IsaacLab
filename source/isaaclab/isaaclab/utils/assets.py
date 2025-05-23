@@ -22,6 +22,7 @@ import carb
 import omni.client
 
 NUCLEUS_ASSET_ROOT_DIR = carb.settings.get_settings().get("/persistent/isaac/asset_root/cloud")
+
 """Path to the root directory on the Nucleus Server."""
 
 NVIDIA_NUCLEUS_DIR = f"{NUCLEUS_ASSET_ROOT_DIR}/NVIDIA"

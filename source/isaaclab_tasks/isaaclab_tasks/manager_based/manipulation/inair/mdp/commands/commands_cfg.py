@@ -44,7 +44,10 @@ class InAirReOrientationCommandCfg(CommandTermCfg):
 
     orientation_success_threshold: float = MISSING
     """Threshold for the orientation error to consider the goal orientation to be reached."""
-
+    
+    velocity_success_threshold: float = MISSING
+    """Threshold for the velocity error to consider the goal orientation to be reached."""
+    
     update_goal_on_success: bool = MISSING
     """Whether to update the goal orientation when the goal orientation is reached."""
 
