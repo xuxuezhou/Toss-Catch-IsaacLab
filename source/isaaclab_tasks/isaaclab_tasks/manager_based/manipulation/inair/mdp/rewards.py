@@ -224,31 +224,29 @@ def limit_object_xy_range(
 
     return binary_output
 
-def track_object_l1(
+def track_object_l2(
     env: ManagerBasedRLEnv,
     asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
     object_cfg: SceneEntityCfg = SceneEntityCfg("object"),
 ) -> torch.Tensor:
     """
-    Compute the L1 distance in (x, y) between the object and the robot's palm (palm_lower).
+    Compute the L2 distance in (x, y) between the object and the robot's palm (palm_lower).
 
     Args:
         env: The environment instance.
-        range_limits: Unused here (kept for compatibility).
         asset_cfg: Configuration for the robot asset.
         object_cfg: Configuration for the object asset.
 
     Returns:
-        A float tensor of shape (num_envs,) representing the distance in the xy-plane.
+        A float tensor of shape (num_envs,) representing the Euclidean distance in the xy-plane.
     """
     palm_lower_xy = env.scene[asset_cfg.name].data.body_link_state_w[:, 10, :2]
     object_xy = env.scene[object_cfg.name].data.root_pos_w[:, :2]
 
     delta_xy = object_xy - palm_lower_xy
-    abs_delta_xy = torch.abs(delta_xy)
 
-    # Return L1 distance: |dx| + |dy|
-    return torch.sum(abs_delta_xy, dim=1)
+    # Return L2 distance: sqrt(dx^2 + dy^2)
+    return torch.norm(delta_xy, dim=1)
 
 
 def palm_drop_penalty(
@@ -332,3 +330,27 @@ def success_bonus(env) -> torch.Tensor:
     object_inhand = is_object_in_hand(env)
     static = is_object_static(env)
     return orientation_align & object_inhand & static
+
+
+def fingertip_distance(    
+    env: ManagerBasedRLEnv,
+    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+) -> torch.Tensor:
+    robot = env.scene[asset_cfg.name]
+    fingertips_pos = robot.data.body_link_state_w[:, -4:, :3]  # [envs, 4, 3]
+
+    i, j = torch.triu_indices(4, 4, offset=1) 
+    dists = torch.norm(fingertips_pos[:, i] - fingertips_pos[:, j], dim=-1)  # [envs, 6]
+
+    return dists.mean(dim=1)
+
+
+# def filtered_undesired_contacts(env: ManagerBasedRLEnv, threshold: float, sensor_cfg: SceneEntityCfg) -> torch.Tensor:
+#     """Penalize undesired contacts as the number of violations that are above a threshold."""
+#     # extract the used quantities (to enable type-hinting)
+#     contact_sensor: ContactSensor = env.scene.sensors[sensor_cfg.name]
+#     # check if contact force is above threshold
+#     net_contact_forces = contact_sensor.data.net_forces_w_history
+#     is_contact = torch.max(torch.norm(net_contact_forces[:, :, sensor_cfg.body_ids], dim=-1), dim=1)[0] > threshold
+#     # sum over contacts for each environment
+#     return torch.sum(is_contact, dim=1)

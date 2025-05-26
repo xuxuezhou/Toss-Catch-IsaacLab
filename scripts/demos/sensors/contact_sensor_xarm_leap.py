@@ -56,18 +56,19 @@ class ContactSensorSceneCfg(InteractiveSceneCfg):
     cube = RigidObjectCfg(
         prim_path="{ENV_REGEX_NS}/Cube",
         spawn=sim_utils.CuboidCfg(
-            size=(0.5, 0.5, 0.1),
+            size=(0.5, 0.5, 0.01),
             rigid_props=sim_utils.RigidBodyPropertiesCfg(),
             mass_props=sim_utils.MassPropertiesCfg(mass=100.0),
             collision_props=sim_utils.CollisionPropertiesCfg(),
             physics_material=sim_utils.RigidBodyMaterialCfg(static_friction=1.0),
             visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.0, 1.0, 0.0), metallic=0.2),
         ),
-        init_state=RigidObjectCfg.InitialStateCfg(pos=(0.5, 0.5, 0.05)),
+        # init_state=RigidObjectCfg.InitialStateCfg(pos=(0.5, 0.5, 0.05)),
+        init_state=RigidObjectCfg.InitialStateCfg(pos=(0.2, 0.0, 0.0)),
     )
 
     contact_forces = ContactSensorCfg(
-        prim_path="{ENV_REGEX_NS}/Robot/palm_lower",
+        prim_path="{ENV_REGEX_NS}/Robot/.*fingertip.*",
         update_period=0.0,
         history_length=6,
         debug_vis=True,
