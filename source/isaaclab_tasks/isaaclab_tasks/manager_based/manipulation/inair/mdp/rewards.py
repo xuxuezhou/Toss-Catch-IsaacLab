@@ -12,43 +12,44 @@ import isaaclab.utils.math as math_utils
 from isaaclab.assets import RigidObject
 from isaaclab.envs import ManagerBasedRLEnv
 from isaaclab.managers import SceneEntityCfg
+from isaaclab.envs.mdp.conditions import is_object_in_hand, is_object_ready_to_end, is_object_static, is_orientation_aligned
 
 if TYPE_CHECKING:
     from .commands import InAirReOrientationCommand
 
-def success_bonus(
-    env: ManagerBasedRLEnv, command_name: str, object_cfg: SceneEntityCfg = SceneEntityCfg("object")
-) -> torch.Tensor:
-    """Bonus reward for successfully reaching the goal.
+# def success_bonus(
+#     env: ManagerBasedRLEnv, command_name: str, object_cfg: SceneEntityCfg = SceneEntityCfg("object")
+# ) -> torch.Tensor:
+#     """Bonus reward for successfully reaching the goal.
 
-    The object is considered to have reached the goal when the object orientation is within the threshold.
-    The reward is 1.0 if the object has reached the goal, otherwise 0.0.
+#     The object is considered to have reached the goal when the object orientation is within the threshold.
+#     The reward is 1.0 if the object has reached the goal, otherwise 0.0.
 
-    Args:
-        env: The environment object.
-        command_name: The command term to be used for extracting the goal.
-        object_cfg: The configuration for the scene entity. Default is "object".
-    """
-    # extract useful elements
-    asset: RigidObject = env.scene[object_cfg.name]
-    command_term: InAirReOrientationCommand = env.command_manager.get_term(command_name)
+#     Args:
+#         env: The environment object.
+#         command_name: The command term to be used for extracting the goal.
+#         object_cfg: The configuration for the scene entity. Default is "object".
+#     """
+#     # extract useful elements
+#     asset: RigidObject = env.scene[object_cfg.name]
+#     command_term: InAirReOrientationCommand = env.command_manager.get_term(command_name)
 
-    # obtain the goal orientation
-    goal_quat_w = command_term.command[:, 3:7]
+#     # obtain the goal orientation
+#     goal_quat_w = command_term.command[:, 3:7]
     
-    # obtain the velocity
-    lin_vel = asset.data.root_lin_vel_w
-    ang_vel = asset.data.root_ang_vel_w
+#     # obtain the velocity
+#     lin_vel = asset.data.root_lin_vel_w
+#     ang_vel = asset.data.root_ang_vel_w
     
-    # obtain the thresholds
-    orientation_success_threshold = command_term.cfg.orientation_success_threshold
-    velocity_success_threshold = command_term.cfg.velocity_success_threshold
+#     # obtain the thresholds
+#     orientation_success_threshold = command_term.cfg.orientation_success_threshold
+#     velocity_success_threshold = command_term.cfg.velocity_success_threshold
     
-    # calculate the orientation error
-    orientation_dtheta = math_utils.quat_error_magnitude(asset.data.root_quat_w, goal_quat_w)
-    velocity_magnitude = torch.norm(lin_vel, dim=1) + torch.norm(ang_vel, dim=1)
+#     # calculate the orientation error
+#     orientation_dtheta = math_utils.quat_error_magnitude(asset.data.root_quat_w, goal_quat_w)
+#     velocity_magnitude = torch.norm(lin_vel, dim=1) + torch.norm(ang_vel, dim=1)
 
-    return (orientation_dtheta <= orientation_success_threshold) & (velocity_magnitude <= velocity_success_threshold)
+#     return (orientation_dtheta <= orientation_success_threshold) & (velocity_magnitude <= velocity_success_threshold)
 
 def track_pos_l2(
     env: ManagerBasedRLEnv, command_name: str, object_cfg: SceneEntityCfg = SceneEntityCfg("object")
@@ -325,3 +326,9 @@ def object_z_far_from_hand(
     )
     return reward
 
+
+def success_bonus(env) -> torch.Tensor:
+    orientation_align = is_orientation_aligned(env)
+    object_inhand = is_object_in_hand(env)
+    static = is_object_static(env)
+    return orientation_align & object_inhand & static

@@ -17,6 +17,7 @@ import argparse
 import time
 
 from isaaclab.app import AppLauncher
+from isaaclab_assets.robots.xarm_leap import XARM_LEAP_HAND_CFG
 
 # add argparse arguments
 parser = argparse.ArgumentParser(description="Benchmark loading different robots.")
@@ -89,6 +90,8 @@ class RobotSceneCfg(InteractiveSceneCfg):
         robot: ArticulationCfg = G1_MINIMAL_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
     elif args_cli.robot == "anymal_d":
         robot: ArticulationCfg = ANYMAL_D_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
+    elif args_cli.robot == "xarm_leap":
+        robot: ArticulationCfg = XARM_LEAP_HAND_CFG.replace(prim_path="{ENV_REGEC_NS}/Robot")
     else:
         raise ValueError(f"Unsupported robot type: {args_cli.robot}.")
 

@@ -52,7 +52,8 @@ class InAirObjectSceneCfg(InteractiveSceneCfg):
             usd_path=f"/home/xuxuezhou/isaac-sim-assets-1/Assets/Isaac/4.5/Isaac/Props/Blocks/DexCube/dex_cube_instanceable.usd",
             # usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Shapes/sphere_physics.usd",
             # usd_path=f"/home/xuxuezhou/isaac-sim-assets-1/Assets/Isaac/4.5/Isaac/Props/Shapes/sphere_physics.usd",
-            scale=(2.5, 2.5, 2.5),
+            scale=(1.75, 1.75, 1.75),
+            # scale=(2.5, 2.5, 2.5),
             rigid_props=sim_utils.RigidBodyPropertiesCfg(
                 kinematic_enabled=False,
                 disable_gravity=False,
@@ -76,6 +77,14 @@ class InAirObjectSceneCfg(InteractiveSceneCfg):
     # contact sensor
     sensor = ContactSensorCfg(
         prim_path="{ENV_REGEX_NS}/Robot/palm_lower", 
+        update_period=0.0, 
+        history_length=6, 
+        debug_vis=True,
+        filter_prim_paths_expr=["{ENV_REGEX_NS}/object", "{ENV_REGEX_NS}/Robot"],
+    )
+    
+    link6_sensor = ContactSensorCfg(
+        prim_path="{ENV_REGEX_NS}/Robot/link6", 
         update_period=0.0, 
         history_length=6, 
         debug_vis=True,
