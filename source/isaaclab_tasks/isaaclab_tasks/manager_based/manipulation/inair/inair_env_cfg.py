@@ -75,13 +75,7 @@ class InAirObjectSceneCfg(InteractiveSceneCfg):
     )
     
     # contact sensor
-    sensor = ContactSensorCfg(
-        prim_path="{ENV_REGEX_NS}/Robot/palm_lower",
-        update_period=0.0, 
-        history_length=6, 
-        debug_vis=True,
-        filter_prim_paths_expr=["{ENV_REGEX_NS}/object"],
-    )
+    sensor = ContactSensorCfg()
     
     # link6_sensor = ContactSensorCfg(
     #     prim_path="{ENV_REGEX_NS}/Robot/link6", 

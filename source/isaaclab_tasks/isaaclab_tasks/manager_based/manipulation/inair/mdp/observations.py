@@ -168,10 +168,6 @@ def hand_joint_vel_rel(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = Scene
 def contact_forces_obs(env: ManagerBasedRLEnv, sensor_cfg: SceneEntityCfg) -> torch.Tensor:
     """Returns contact force as observation per environment."""
     contact_sensor = env.scene.sensors[sensor_cfg.name]
-    
-    # shape: [num_envs, num_bodies, 3]
-    net_contact_forces = contact_sensor.data.net_forces_w[:, sensor_cfg.body_ids, :]
+    filter_contact_forces = contact_sensor.data.force_matrix_w[:, sensor_cfg.body_ids, :]
 
-    # flatten to shape: [num_envs, num_bodies * 3]
-    return net_contact_forces.reshape(env.num_envs, -1)
-
+    return filter_contact_forces.reshape(env.num_envs, -1)

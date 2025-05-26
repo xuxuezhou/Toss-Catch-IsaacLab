@@ -3,6 +3,7 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 
+from isaaclab.sensors.contact_sensor.contact_sensor_cfg import ContactSensorCfg
 from isaaclab.utils import configclass
 from isaaclab.controllers.operational_space_cfg import OperationalSpaceControllerCfg
 from isaaclab.envs.mdp.actions.actions_cfg import OperationalSpaceControllerActionCfg
@@ -76,6 +77,16 @@ class xArmLeapCubeEnvCfg(inair_env_cfg.InAirObjectEnvCfg):
             alpha=0.95,
             rescale_to_limits=True,
         )
+        
+        # contact sensor
+        self.scene.sensor = ContactSensorCfg(
+            prim_path="{ENV_REGEX_NS}/Robot/fingertip",
+            update_period=0.0, 
+            history_length=6, 
+            debug_vis=True,
+            filter_prim_paths_expr=["{ENV_REGEX_NS}/object"],
+        )
+
 
 
 @configclass

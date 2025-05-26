@@ -30,6 +30,7 @@ from isaaclab.assets import AssetBaseCfg, RigidObjectCfg
 from isaaclab.scene import InteractiveScene, InteractiveSceneCfg
 from isaaclab.sensors import ContactSensorCfg
 from isaaclab.utils import configclass
+from isaaclab.assets.articulation.articulation_cfg import ArticulationCfg
 
 ##
 # Pre-defined configs
@@ -51,12 +52,28 @@ class ContactSensorSceneCfg(InteractiveSceneCfg):
 
     # robot
     robot = XARM_LEAP_HAND_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
+    # robot.init_state=ArticulationCfg.InitialStateCfg(
+    #     pos=(0.0, 0.0, 0.0),
+    #     rot=(1.0, 0.0, 0.0, 0.0),
+    #     joint_pos={
+    #         # xArm joints
+    #         "joint1": -1.5,
+    #         "joint2": -0.4,    
+    #         "joint3": 0.8,    
+    #         "joint4": 1.2,      
+    #         "joint5": 3.6,     
+    #         "joint6": 1.57,     
+    #         "joint7": 0.3, 
+    #         # hand joints
+    #         "^a_.*$": 0.0,
+    #     },
+    # )
 
     # Rigid Object
     cube = RigidObjectCfg(
         prim_path="{ENV_REGEX_NS}/Cube",
         spawn=sim_utils.CuboidCfg(
-            size=(0.5, 0.5, 0.01),
+            size=(0.3, 0.5, 0.01),
             rigid_props=sim_utils.RigidBodyPropertiesCfg(),
             mass_props=sim_utils.MassPropertiesCfg(mass=100.0),
             collision_props=sim_utils.CollisionPropertiesCfg(),
@@ -68,7 +85,7 @@ class ContactSensorSceneCfg(InteractiveSceneCfg):
     )
 
     contact_forces = ContactSensorCfg(
-        prim_path="{ENV_REGEX_NS}/Robot/.*fingertip.*",
+        prim_path="{ENV_REGEX_NS}/Robot/palm_lower",
         update_period=0.0,
         history_length=6,
         debug_vis=True,
@@ -82,7 +99,7 @@ def run_simulator(sim: sim_utils.SimulationContext, scene: InteractiveScene):
     sim_dt = sim.get_physics_dt()
     sim_time = 0.0
     count = 0
-
+    
     # Simulate physics
     while simulation_app.is_running():
 
@@ -102,7 +119,7 @@ def run_simulator(sim: sim_utils.SimulationContext, scene: InteractiveScene):
                 scene["robot"].data.default_joint_pos.clone(),
                 scene["robot"].data.default_joint_vel.clone(),
             )
-            joint_pos += torch.rand_like(joint_pos) * 0.1
+            # joint_pos += torch.rand_like(joint_pos) * 0.1
             scene["robot"].write_joint_state_to_sim(joint_pos, joint_vel)
             # clear internal buffers
             scene.reset()
