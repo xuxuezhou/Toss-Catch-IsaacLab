@@ -4,7 +4,7 @@ import torch
 
 from isaaclab.envs.common import VecEnvObs
 from isaaclab.envs.mdp.conditions import has_object_hand_contact, impossible_condition, no_contact_and_inhand, is_object_ready_to_end, has_contact_and_inhand, is_static_and_inhand
-from isaaclab.envs.mdp.rewards import hand_action_l2, arm_action_l2, joint_acc_l2, joint_vel_l2, filtered_undesired_contacts
+from isaaclab.envs.mdp.rewards import hand_action_l2, arm_action_l2, joint_acc_l2, joint_vel_l2, current_undesired_contacts
 from isaaclab.managers.scene_entity_cfg import SceneEntityCfg
 from isaaclab_tasks.manager_based.manipulation.inair.mdp.rewards import fingertip_distance, object_vel_penalty, palm_drop_penalty, above_palm, success_bonus, \
 track_delta_orientation_l2, track_orientation_inv_l2, track_object_l2, object_height_penalty
@@ -25,7 +25,7 @@ class FSMRewardScales:
     object_height_penalty: float = 0.0
     joint_acc_l2: float = 0.0
     above_palm: float = 100.0
-    filtered_undesired_contacts: float = 30.0
+    current_undesired_contacts: float = 30.0
     palm_drop_penalty: float = 40.0
     track_delta_orientation_l2: float = 600.0
     track_orientation_inv_l2: float = 10.0
@@ -36,9 +36,10 @@ class FSMRewardScales_0:
     joint_vel_l2: float = 1e-3
     above_palm: float = 100.0
     track_object_l2: float = 50.0
+    fingertip_distance: float = 100.0
     
 class FSMRewardScales_1:    
-    filtered_undesired_contacts: float = 100.0
+    current_undesired_contacts: float = 100.0
     track_object_l2: float = 0.0
     joint_acc_l2: float = 0.0
     
@@ -61,7 +62,7 @@ class FSMRewardScales_3:
     track_orientation_inv_l2: float = 10.0
     track_object_l2: float = 50.0
     success_bonus: float = 500
-    body_filtered_undesired_contacts: float = 0.0
+    body_current_undesired_contacts: float = 0.0
     fingertip_distance: float = 100.0
 
     
@@ -91,8 +92,8 @@ class ManagerBasedRLFSMEnv(ManagerBasedRLEnv):
         joint_vel = joint_vel_l2(self, asset_cfg=SceneEntityCfg(name="robot"))
         joint_acc = joint_acc_l2(self)
         above = above_palm(self)
-        undesired = filtered_undesired_contacts(self, threshold=1e-5, sensor_cfg=SceneEntityCfg(name="sensor"))
-        # body_undesired = filtered_undesired_contacts(self, threshold=1e-5, sensor_cfg=SceneEntityCfg(name="link6_sensor"))
+        undesired = current_undesired_contacts(self, threshold=0, sensor_cfg=SceneEntityCfg(name="sensor"))
+        # body_undesired = current_undesired_contacts(self, threshold=0, sensor_cfg=SceneEntityCfg(name="link6_sensor"))
         palm_drop = palm_drop_penalty(self, init_pos_z=0.58, asset_cfg=SceneEntityCfg("robot"))
         
         track_delta_ori = track_delta_orientation_l2(self, command_name="object_pose", object_cfg=SceneEntityCfg("object"))
@@ -110,6 +111,7 @@ class ManagerBasedRLFSMEnv(ManagerBasedRLEnv):
             "INIT/joint_vel_l2": ((self.fsm_state == FSMState.INIT) * (-FSMRewardScales_0.joint_vel_l2 * joint_vel)).detach(),
             "INIT/track_object_l2": ((self.fsm_state == FSMState.INIT) * (-FSMRewardScales_0.track_object_l2 * track_object)).detach(),
             "INIT/above_palm": ((self.fsm_state == FSMState.INIT) * (FSMRewardScales_0.above_palm * above)).detach(),
+            "INIT/fingertip_distance": ((self.fsm_state == FSMState.INIT) * (FSMRewardScales_0.fingertip_distance * fingertip_dis)).detach(),
             "INIT/reward_case_0": (
                 (self.fsm_state == FSMState.INIT)
                 * (
@@ -117,16 +119,17 @@ class ManagerBasedRLFSMEnv(ManagerBasedRLEnv):
                     -FSMRewardScales_0.joint_vel_l2 * joint_vel
                     -FSMRewardScales_0.track_object_l2 * track_object
                     +FSMRewardScales_0.above_palm * above
+                    +FSMRewardScales_2.fingertip_distance * fingertip_dis
                 )
             ).detach(),
             # BEFORE_THROW
-            "BEFORE_THROW/filtered_undesired_contacts": ((self.fsm_state == FSMState.BEFORE_THROW) * (-FSMRewardScales_1.filtered_undesired_contacts * undesired)).detach(),
+            "BEFORE_THROW/current_undesired_contacts": ((self.fsm_state == FSMState.BEFORE_THROW) * (-FSMRewardScales_1.current_undesired_contacts * undesired)).detach(),
             "BEFORE_THROW/track_object_l2": ((self.fsm_state == FSMState.BEFORE_THROW) * (-FSMRewardScales_1.track_object_l2 * track_object)).detach(),
             "BEFORE_THROW/joint_acc_l2": ((self.fsm_state == FSMState.BEFORE_THROW) * (-FSMRewardScales_1.joint_acc_l2 * joint_acc)).detach(),
             "BEFORE_THROW/reward_case_1": (
                 (self.fsm_state == FSMState.BEFORE_THROW)
                 * (
-                    -FSMRewardScales_1.filtered_undesired_contacts * undesired
+                    -FSMRewardScales_1.current_undesired_contacts * undesired
                     -FSMRewardScales_1.track_object_l2 * track_object
                     -FSMRewardScales_1.joint_acc_l2 * joint_acc
                 )
@@ -161,7 +164,7 @@ class ManagerBasedRLFSMEnv(ManagerBasedRLEnv):
             "BACK_IN_HAND/track_object_l2": ((self.fsm_state == FSMState.BACK_IN_HAND) * (-FSMRewardScales_3.track_object_l2 * track_object)).detach(),
             "BACK_IN_HAND/track_delta_orientation_l2": ((self.fsm_state == FSMState.BACK_IN_HAND) * (FSMRewardScales_3.track_delta_orientation_l2 * track_delta_ori)).detach(),
             "BACK_IN_HAND/track_orientation_inv_l2": ((self.fsm_state == FSMState.BACK_IN_HAND) * (FSMRewardScales_3.track_orientation_inv_l2 * track_ori)).detach(),
-            # "BACK_IN_HAND/filtered_undesired_contacts": ((self.fsm_state == FSMState.BACK_IN_HAND) * (-FSMRewardScales_3.body_filtered_undesired_contacts * body_undesired)).detach(),
+            # "BACK_IN_HAND/current_undesired_contacts": ((self.fsm_state == FSMState.BACK_IN_HAND) * (-FSMRewardScales_3.body_current_undesired_contacts * body_undesired)).detach(),
             "BACK_IN_HAND/fingertip_distance": ((self.fsm_state == FSMState.BACK_IN_HAND) * (-FSMRewardScales_3.fingertip_distance * fingertip_dis)).detach(),
             "BACK_IN_HAND/success_bonus": ((self.fsm_state == FSMState.BACK_IN_HAND) * (FSMRewardScales_3.success_bonus * success)).detach(),
             "BACK_IN_HAND/reward_case_3": (
@@ -175,7 +178,7 @@ class ManagerBasedRLFSMEnv(ManagerBasedRLEnv):
                     +FSMRewardScales_3.track_delta_orientation_l2 * track_delta_ori
                     +FSMRewardScales_3.track_orientation_inv_l2 * track_ori
                     +FSMRewardScales_3.success_bonus * success
-                    # -FSMRewardScales_3.body_filtered_undesired_contacts * body_undesired
+                    # -FSMRewardScales_3.body_current_undesired_contacts * body_undesired
                     -FSMRewardScales_2.fingertip_distance * fingertip_dis
                 )
             ).detach(),
@@ -199,9 +202,10 @@ class ManagerBasedRLFSMEnv(ManagerBasedRLEnv):
             -FSMRewardScales_0.joint_vel_l2 * joint_vel_l2(self, asset_cfg=SceneEntityCfg(name="robot"))
             -FSMRewardScales_0.track_object_l2 * track_object_l2(self, asset_cfg=SceneEntityCfg(name="robot"), object_cfg=SceneEntityCfg("object"))
             +FSMRewardScales_0.above_palm * above_palm(self)
+            +FSMRewardScales_0.fingertip_distance * fingertip_distance(self)
         )
         reward_case_1 = (
-            -FSMRewardScales_1.filtered_undesired_contacts * filtered_undesired_contacts(self, threshold=1e-5, sensor_cfg=SceneEntityCfg(name="sensor"))
+            -FSMRewardScales_1.current_undesired_contacts * current_undesired_contacts(self, threshold=0, sensor_cfg=SceneEntityCfg(name="sensor"))
             -FSMRewardScales_1.track_object_l2 * track_object_l2(self, asset_cfg=SceneEntityCfg(name="robot"), object_cfg=SceneEntityCfg("object"))
             -FSMRewardScales_1.joint_acc_l2 * joint_acc_l2(self)
         )
@@ -223,7 +227,7 @@ class ManagerBasedRLFSMEnv(ManagerBasedRLEnv):
             +FSMRewardScales_3.above_palm * above_palm(self)
             -FSMRewardScales_3.palm_drop_penalty * palm_drop_penalty(self, init_pos_z=0.58, asset_cfg=SceneEntityCfg("robot"))
             +FSMRewardScales_3.success_bonus * success_bonus(self)
-            # -FSMRewardScales_3.body_filtered_undesired_contacts * filtered_undesired_contacts(self, threshold=1e-5, sensor_cfg=SceneEntityCfg(name="link6_sensor"))
+            # -FSMRewardScales_3.body_current_undesired_contacts * current_undesired_contacts(self, threshold=0, sensor_cfg=SceneEntityCfg(name="link6_sensor"))
             -FSMRewardScales_2.fingertip_distance * fingertip_distance(self)
         )
 

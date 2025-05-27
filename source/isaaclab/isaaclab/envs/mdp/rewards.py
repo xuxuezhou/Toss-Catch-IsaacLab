@@ -291,6 +291,14 @@ def filtered_undesired_contacts(env: ManagerBasedRLEnv, threshold: float, sensor
     is_contact = torch.max(torch.norm(filter_contact_forces[:, :, sensor_cfg.body_ids], dim=-1), dim=1)[0] > threshold
     return torch.sum(is_contact, dim=1)
 
+def current_undesired_contacts(env: ManagerBasedRLEnv, threshold: float, sensor_cfg: SceneEntityCfg) -> torch.Tensor:
+    """Penalize undesired contacts as the number of violations that are above a threshold."""
+    # extract the used quantities (to enable type-hinting)
+    contact_sensor: ContactSensor = env.scene.sensors[sensor_cfg.name]
+    current_contact_forces = contact_sensor.data.net_forces_w
+    is_contact = torch.max(torch.norm(current_contact_forces[:, sensor_cfg.body_ids], dim=-1), dim=1)[0] > threshold
+    return is_contact
+
 
 def contact_forces(env: ManagerBasedRLEnv, threshold: float, sensor_cfg: SceneEntityCfg) -> torch.Tensor:
     """Penalize contact forces as the amount of violations of the net contact force."""

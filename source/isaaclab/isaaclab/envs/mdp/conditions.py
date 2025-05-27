@@ -24,7 +24,7 @@ Transition Conditions
 
 class THRESHOLD:
     x_thresh: float = 0.04
-    y_thresh: float = 0.065
+    y_thresh: float = 0.06
     static_thresh: float = 0.50
     
     orien_thresh: float = 0.1
@@ -69,12 +69,16 @@ def is_orientation_aligned(env: ManagerBasedRLEnv, threshold: float = THRESHOLD.
 
 def has_object_hand_contact(env: ManagerBasedRLEnv, threshold: float = THRESHOLD.orien_thresh, sensor_cfg=SceneEntityCfg(name="sensor")) -> torch.Tensor:
     sensor = env.scene.sensors[sensor_cfg.name]
-    filter_contact_forces = sensor.data.force_matrix_w
-    is_contact = torch.max(torch.norm(filter_contact_forces[:, :, sensor_cfg.body_ids], dim=-1), dim=1)[0] > threshold
-    return torch.any(is_contact, dim=1)
+    current_contact_forces = sensor.data.net_forces_w
+    is_contact = torch.max(torch.norm(current_contact_forces[:, :, sensor_cfg.body_ids], dim=-1), dim=1)[0] > threshold
+    return is_contact
+    
+    # filtered_contact_forces = sensor.data.force_matrix_w
+    # is_contact = torch.max(torch.norm(filtered_contact_forces[:, :, sensor_cfg.body_ids], dim=-1), dim=1)[0] > threshold
+    # return torch.any(is_contact, dim=1)
 
 def is_static_and_inhand(env: ManagerBasedRLEnv) -> torch.Tensor:
-    return is_object_in_hand(env) & is_object_static(env)
+    return is_object_in_hand(env) & is_object_static(env) & has_object_hand_contact(env)
 
 def has_contact_and_inhand(env: ManagerBasedRLEnv) -> torch.Tensor:
     return has_object_hand_contact(env) & is_object_in_hand(env)

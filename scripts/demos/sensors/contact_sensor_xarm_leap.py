@@ -85,12 +85,23 @@ class ContactSensorSceneCfg(InteractiveSceneCfg):
     )
 
     contact_forces = ContactSensorCfg(
-        prim_path="{ENV_REGEX_NS}/Robot/palm_lower",
+        # prim_path="{ENV_REGEX_NS}/Robot/palm_lower",
+        prim_path="{ENV_REGEX_NS}/Robot/.*fingertip.*",
+        # prim_path="{ENV_REGEX_NS}/Robot/thumb_fingertip",
+        # prim_path="{ENV_REGEX_NS}/Robot/(palm_lower|.*fingertip.*)",
         update_period=0.0,
         history_length=6,
         debug_vis=True,
         filter_prim_paths_expr=["{ENV_REGEX_NS}/Cube"],
     )
+    
+    # contact_forces = ContactSensorCfg(
+    #     prim_path="{ENV_REGEX_NS}/Robot/(palm_lower|.*fingertip.*|.*pip.*|.*dip.*|.*mcp_joint.*)",
+    #     update_period=0.0,
+    #     history_length=6,
+    #     debug_vis=True,
+    #     filter_prim_paths_expr=["{ENV_REGEX_NS}/object"]
+    # )
 
 
 def run_simulator(sim: sim_utils.SimulationContext, scene: InteractiveScene):
@@ -143,6 +154,7 @@ def run_simulator(sim: sim_utils.SimulationContext, scene: InteractiveScene):
         print("-------------------------------")
         print(scene["contact_forces"])
         print("Received force matrix of: ", scene["contact_forces"].data.force_matrix_w)
+        print("The norm of contact force: ", torch.max(torch.norm(scene["contact_forces"].data.force_matrix_w, dim=-1), dim=1)[0])
         print("Received contact force of: ", scene["contact_forces"].data.net_forces_w)
 
 
