@@ -132,8 +132,9 @@ def land_on_floor(
     object_pos_z = object.data.root_pos_w[:, 2]
     
     plane_pos, _ = plane.get_world_poses()
-    plane_pos_z = plane_pos[:, 2] + 0.1
+    plane_pos_z = plane_pos[:, 2] + 0.15
     plane_pos_z_expanded = plane_pos_z.expand_as(object_pos_z)
     
     return object_pos_z <= plane_pos_z_expanded
+
     

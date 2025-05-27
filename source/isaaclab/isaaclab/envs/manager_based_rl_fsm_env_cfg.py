@@ -4,4 +4,4 @@ from isaaclab.utils import configclass
 from .manager_based_rl_env_cfg import ManagerBasedRLEnvCfg
 
 class ManagerBasedRLFSMEnvCfg(ManagerBasedRLEnvCfg):
-  pass
+  rerender_on_reset: bool = True

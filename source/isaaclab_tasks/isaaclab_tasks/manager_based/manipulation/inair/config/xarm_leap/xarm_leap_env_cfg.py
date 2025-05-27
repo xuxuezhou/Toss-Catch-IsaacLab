@@ -103,4 +103,4 @@ class xArmLeapCubeEnvCfg_PLAY(xArmLeapCubeEnvCfg):
         # disable randomization for play
         self.observations.policy.enable_corruption = False
         # remove termination due to timeouts
-        self.terminations.time_out = None
+        # self.terminations.time_out = None

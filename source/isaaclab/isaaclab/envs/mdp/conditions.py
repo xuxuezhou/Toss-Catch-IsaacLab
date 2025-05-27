@@ -23,36 +23,36 @@ Transition Conditions
 """
 
 class THRESHOLD:
-    x_thresh: float = 0.04
-    y_thresh: float = 0.06
+    x_thresh: float = 0.05
+    y_thresh: float = 0.05
+    z_thresh: float = 0.10
+    
     static_thresh: float = 0.50
     
     orien_thresh: float = 0.1
     contact_thresh: float = 0.01
-    
 
-def is_object_in_hand(env: ManagerBasedRLEnv, x_thresh: float = THRESHOLD.x_thresh, y_thresh: float = THRESHOLD.y_thresh) -> torch.Tensor:
+def is_object_in_hand(env: ManagerBasedRLEnv, x_thresh: float = THRESHOLD.x_thresh, y_thresh: float = THRESHOLD.y_thresh, z_thresh: float = THRESHOLD.z_thresh) -> torch.Tensor:
     object = env.scene["object"]
     robot = env.scene["robot"]
     
-    # Check if the object is above hand
-    object_z = object.data.root_pos_w[:, 2]
-    hand_z = robot.data.body_link_state_w[:, 10, 2]
-    
-    is_above_hand = object_z >= hand_z
-    
-    # Check if the object is within xy-plane in hand
-    object_xy = object.data.root_pos_w[:, :2]       # shape (num_envs, 2)
-    hand_xy = robot.data.body_link_state_w[:, 10, :2]
+    object_xyz = object.data.root_pos_w[:, :3]
+    hand_xyz = robot.data.body_link_state_w[:, 10, :3]
 
-    x_diff = torch.abs(object_xy[:, 0] - hand_xy[:, 0])
-    y_diff = torch.abs(object_xy[:, 1] - hand_xy[:, 1])
+    x_diff = torch.abs(object_xyz[:, 0] - hand_xyz[:, 0])
+    y_diff = torch.abs(object_xyz[:, 1] - hand_xyz[:, 1])
+    z_diff = object_xyz[:, 2] - hand_xyz[:, 2]
+    
+    print(f"The x difference is {x_diff}")
+    print(f"The y difference is {y_diff}")
+    print(f"The z difference is {z_diff}")
 
     is_within_x = x_diff < x_thresh
     is_within_y = y_diff < y_thresh
+    is_within_z = z_diff < z_thresh
 
-    is_within_xy = is_within_x & is_within_y
-    return is_within_xy & is_above_hand
+    is_inhand = is_within_x & is_within_y & is_within_z
+    return is_inhand
 
 
 def is_object_static(env: ManagerBasedRLEnv, threshold: float = THRESHOLD.static_thresh) -> torch.Tensor:
@@ -60,6 +60,7 @@ def is_object_static(env: ManagerBasedRLEnv, threshold: float = THRESHOLD.static
     object_vel_magnitude = torch.norm(object.data.root_lin_vel_w, dim=1) + torch.norm(object.data.root_ang_vel_w, dim=1)
     
     is_static = object_vel_magnitude < threshold
+    print(f"The object_vel_magnitude is {object_vel_magnitude}")
     return is_static
 
 
@@ -76,9 +77,21 @@ def has_object_hand_contact(env: ManagerBasedRLEnv, threshold: float = THRESHOLD
     # filtered_contact_forces = sensor.data.force_matrix_w
     # is_contact = torch.max(torch.norm(filtered_contact_forces[:, :, sensor_cfg.body_ids], dim=-1), dim=1)[0] > threshold
     # return torch.any(is_contact, dim=1)
+    
+def is_object_off_hand(env: ManagerBasedRLEnv, z_thresh: float = THRESHOLD.z_thresh) -> torch.Tensor:
+    object = env.scene["object"]
+    robot = env.scene["robot"]
+    
+    object_z = object.data.root_pos_w[:, 2]
+    hand_z = robot.data.body_link_state_w[:, 10, 2]
+    
+    is_off_hand = object_z - hand_z >= z_thresh
+    return is_off_hand
 
 def is_static_and_inhand(env: ManagerBasedRLEnv) -> torch.Tensor:
-    return is_object_in_hand(env) & is_object_static(env) & has_object_hand_contact(env)
+    if is_object_in_hand(env) & is_object_static(env):
+        import pdb;pdb.set_trace()
+    return is_object_in_hand(env) & is_object_static(env)
 
 def has_contact_and_inhand(env: ManagerBasedRLEnv) -> torch.Tensor:
     return has_object_hand_contact(env) & is_object_in_hand(env)

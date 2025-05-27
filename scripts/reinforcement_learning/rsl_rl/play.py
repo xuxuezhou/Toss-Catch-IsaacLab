@@ -159,7 +159,9 @@ def main():
             # print(f"[INFO] Object position: {object_pos[0]}")
             # print(f"[INFO] Distance to palm: {dist[0]:.3f}")
             # print(f"[INFO] Out of reach (dist > {threshold}): {dist[0] > threshold}")
-            
+            # object_z = env.unwrapped.scene["object"].data.root_pos_w[:, 2]
+            # print(f"Object height is {object_z}")
+            # import pdb;pdb.set_trace()
             # env stepping
             obs, rewards, dones, info = env.step(actions)
             

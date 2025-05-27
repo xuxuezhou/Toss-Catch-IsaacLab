@@ -332,17 +332,40 @@ def success_bonus(env) -> torch.Tensor:
     return orientation_align & object_inhand & static
 
 
-def fingertip_distance(    
+def open_fingertips(
     env: ManagerBasedRLEnv,
     asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
 ) -> torch.Tensor:
     robot = env.scene[asset_cfg.name]
     fingertips_pos = robot.data.body_link_state_w[:, -4:, :3]  # [envs, 4, 3]
 
-    i, j = torch.triu_indices(4, 4, offset=1) 
-    dists = torch.norm(fingertips_pos[:, i] - fingertips_pos[:, j], dim=-1)  # [envs, 6]
+    # index=0, thumb=1, middle=2, ring=3
+    index_to_thumb = torch.norm(fingertips_pos[:, 0] - fingertips_pos[:, 1], dim=-1)
+    middle_to_thumb = torch.norm(fingertips_pos[:, 2] - fingertips_pos[:, 1], dim=-1)
+    ring_to_thumb = torch.norm(fingertips_pos[:, 3] - fingertips_pos[:, 1], dim=-1)
 
-    return dists.mean(dim=1)
+    # sum distances
+    total_distance = index_to_thumb + middle_to_thumb + ring_to_thumb
+
+    return total_distance  # shape: [envs]
+
+def grasp_object(
+    env: ManagerBasedRLEnv,
+    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+    object_cfg: SceneEntityCfg = SceneEntityCfg("object"),
+) -> torch.Tensor:
+    robot = env.scene[asset_cfg.name]
+    object = env.scene[object_cfg.name]
+
+    fingertips_pos = robot.data.body_link_state_w[:, -4:, :3]  # [envs, 4, 3]
+    object_pos = object.data.root_pos_w[:, :3]                    # [envs, 3]
+
+    dists = torch.norm(fingertips_pos - object_pos.unsqueeze(1), dim=-1)  # [envs, 4]
+
+    return dists.sum(dim=1)  # shape: [envs]
+
+     
+    
 
 
 # def filtered_undesired_contacts(env: ManagerBasedRLEnv, threshold: float, sensor_cfg: SceneEntityCfg) -> torch.Tensor:

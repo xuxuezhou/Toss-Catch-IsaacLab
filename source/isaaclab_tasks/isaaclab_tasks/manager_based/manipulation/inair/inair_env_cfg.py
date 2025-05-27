@@ -53,7 +53,7 @@ class InAirObjectSceneCfg(InteractiveSceneCfg):
             # usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Shapes/sphere_physics.usd",
             # usd_path=f"/home/xuxuezhou/isaac-sim-assets-1/Assets/Isaac/4.5/Isaac/Props/Shapes/sphere_physics.usd",
             # scale=(1.75, 1.75, 1.75),
-            scale=(2.5, 2.5, 2.5),
+            scale=(2.25, 2.25, 2.25),
             rigid_props=sim_utils.RigidBodyPropertiesCfg(
                 kinematic_enabled=False,
                 disable_gravity=False,
@@ -70,9 +70,9 @@ class InAirObjectSceneCfg(InteractiveSceneCfg):
             mass_props=sim_utils.MassPropertiesCfg(density=400.0),
         ),
         init_state=RigidObjectCfg.InitialStateCfg(
-            # pos=(0.4, -0.4,  1.3), # 2*2*2
+            # pos=(0.4, -0.4,  1.2), # 2*2*2
             # pos=(0.4, -0.4,  1.0), # 3*3*3
-            pos=(0.4, -0.4,  0.8), # 3*3*3 inhand
+            pos=(0.4, -0.4,  0.85), # 3*3*3 inhand
             rot=(1.0, 0.0, 0.0, 0.0)
         ),
     )
@@ -445,3 +445,4 @@ class InAirObjectEnvCfg(ManagerBasedRLFSMEnvCfg):
         self.sim.render_interval = self.decimation
         # change viewer settings
         self.viewer.eye = (2.0, 2.0, 2.0)
+        # self.rerender_on_reset = True
