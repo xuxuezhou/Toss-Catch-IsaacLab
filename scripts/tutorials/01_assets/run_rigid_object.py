@@ -109,6 +109,10 @@ def run_simulator(sim: sim_utils.SimulationContext, entities: dict[str, RigidObj
             cone_object.reset()
             print("----------------------------------------")
             print("[INFO]: Resetting object state...")
+            
+            # print("[DEBUG] Root Position After Reset:", cone_object.data.root_pos_w)
+            # print("[DEBUG] Root Velocity After Reset:", cone_object.data.root_lin_vel_w)    
+            # import pdb;pdb.set_trace()
         # apply sim data
         cone_object.write_data_to_sim()
         # perform step

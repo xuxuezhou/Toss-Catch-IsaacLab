@@ -332,6 +332,9 @@ class ContactSensor(SensorBase):
         if self.cfg.history_length > 0:
             self._data.net_forces_w_history[env_ids, 1:] = self._data.net_forces_w_history[env_ids, :-1].clone()
             self._data.net_forces_w_history[env_ids, 0] = self._data.net_forces_w[env_ids]
+        
+        # print(f"Net Force: {self._data.net_forces_w[env_ids]}")
+        # import pdb;pdb.set_trace()
 
         # obtain the contact force matrix
         if len(self.cfg.filter_prim_paths_expr) != 0:
@@ -341,6 +344,9 @@ class ContactSensor(SensorBase):
             force_matrix_w = self.contact_physx_view.get_contact_force_matrix(dt=self._sim_physics_dt)
             force_matrix_w = force_matrix_w.view(-1, self._num_bodies, num_filters, 3)
             self._data.force_matrix_w[env_ids] = force_matrix_w[env_ids]
+            # print(f"Net Force: {self._data.net_forces_w[env_ids]}")
+            # print(f"Force Matrix: {self._data.force_matrix_w[env_ids]}")
+            # import pdb;pdb.set_trace()
 
         # obtain the pose of the sensor origin
         if self.cfg.track_pose:

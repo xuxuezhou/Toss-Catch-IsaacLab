@@ -37,6 +37,16 @@ CONTACT_SENSOR_MARKER_CFG = VisualizationMarkersCfg(
 )
 """Configuration for the contact sensor marker."""
 
+FORCE_TORQUE_SENSOR_MARKER_CFG = VisualizationMarkersCfg(
+    markers={
+        "contact": sim_utils.SphereCfg(
+            radius=0.01,
+            visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(1.0, 0.0, 0.0)),
+        )
+    }
+)
+
+
 DEFORMABLE_TARGET_MARKER_CFG = VisualizationMarkersCfg(
     markers={
         "target": sim_utils.SphereCfg(

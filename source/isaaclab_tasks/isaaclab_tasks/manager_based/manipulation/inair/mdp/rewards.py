@@ -13,6 +13,7 @@ from isaaclab.assets import RigidObject
 from isaaclab.envs import ManagerBasedRLEnv
 from isaaclab.managers import SceneEntityCfg
 from isaaclab.envs.mdp.conditions import is_object_in_hand, is_object_ready_to_end, is_object_static, is_orientation_aligned
+from isaaclab.envs.mdp.conditions import THRESHOLD
 
 if TYPE_CHECKING:
     from .commands import InAirReOrientationCommand
@@ -364,9 +365,6 @@ def grasp_object(
 
     return dists.sum(dim=1)  # shape: [envs]
 
-     
-    
-
 
 # def filtered_undesired_contacts(env: ManagerBasedRLEnv, threshold: float, sensor_cfg: SceneEntityCfg) -> torch.Tensor:
 #     """Penalize undesired contacts as the number of violations that are above a threshold."""
@@ -377,3 +375,38 @@ def grasp_object(
 #     is_contact = torch.max(torch.norm(net_contact_forces[:, :, sensor_cfg.body_ids], dim=-1), dim=1)[0] > threshold
 #     # sum over contacts for each environment
 #     return torch.sum(is_contact, dim=1)
+
+"""
+Encourage throw
+
+"""
+
+def object_off_hand(
+    env: ManagerBasedRLEnv,
+    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+    object_cfg: SceneEntityCfg = SceneEntityCfg("object"),
+) -> torch.Tensor:
+    object = env.scene[object_cfg.name]
+    robot = env.scene[asset_cfg.name]
+    
+    object_z = object.data.root_pos_w[:, 2]
+    hand_z = robot.data.body_link_state_w[:, 10, 2]
+    
+    z_diff = object_z - hand_z
+    is_off_hand = torch.where(
+        z_diff > THRESHOLD.throw_thresh,
+        torch.tensor(1.0, device=z_diff.device),
+        torch.tensor(-1.0, device=z_diff.device)
+    )
+    
+    return is_off_hand
+
+def object_lin_vel_z(
+    env: ManagerBasedRLEnv,
+    object_cfg: SceneEntityCfg = SceneEntityCfg("object"),
+) -> torch.Tensor:
+    object = env.scene[object_cfg.name]
+    
+    lin_vel_z = object.data.root_lin_vel_w[:, 2]
+    lin_vel_z_upper = lin_vel_z.clamp(min=0.0)
+    return lin_vel_z_upper

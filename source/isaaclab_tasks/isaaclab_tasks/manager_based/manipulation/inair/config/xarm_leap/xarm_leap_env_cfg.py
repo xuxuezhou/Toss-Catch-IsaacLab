@@ -80,10 +80,10 @@ class xArmLeapCubeEnvCfg(inair_env_cfg.InAirObjectEnvCfg):
         
         # contact sensor
         self.scene.sensor = ContactSensorCfg(
-            # prim_path="{ENV_REGEX_NS}/Robot/.*fingertip.*",
+            prim_path="{ENV_REGEX_NS}/Robot/.*fingertip.*",
             # prim_path="{ENV_REGEX_NS}/Robot/palm_lower",
             # prim_path="{ENV_REGEX_NS}/Robot/.*mcp_joint.*",
-            prim_path="{ENV_REGEX_NS}/Robot/(.*fingertip.*|.*mcp_joint.*)",
+            # prim_path="{ENV_REGEX_NS}/Robot/(.*fingertip.*|.*mcp_joint.*)",
             # prim_path="{ENV_REGEX_NS}/Robot/(.*fingertip.*|.*pip.*|.*dip.*|.*mcp_joint.*)",
             # prim_path="{ENV_REGEX_NS}/Robot/(palm_lower|.*fingertip.*|.*pip.*|.*dip.*|.*mcp_joint.*)",
             update_period=0.0, 

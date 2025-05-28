@@ -159,9 +159,13 @@ def main():
             # print(f"[INFO] Object position: {object_pos[0]}")
             # print(f"[INFO] Distance to palm: {dist[0]:.3f}")
             # print(f"[INFO] Out of reach (dist > {threshold}): {dist[0] > threshold}")
-            # object_z = env.unwrapped.scene["object"].data.root_pos_w[:, 2]
+            # object = env.unwrapped.scene["object"]
+            # object_z = object.data.root_pos_w[:, 2]
+            # object_vel_magnitude = torch.norm(object.data.root_lin_vel_w, dim=1) + torch.norm(object.data.root_ang_vel_w, dim=1)
             # print(f"Object height is {object_z}")
-            # import pdb;pdb.set_trace()
+            # print(f"Object velocity is {object_vel_magnitude}")
+            # if object_z == 0.85:
+            #     import pdb;pdb.set_trace()
             # env stepping
             obs, rewards, dones, info = env.step(actions)
             

@@ -194,7 +194,6 @@ class ManagerBasedRLEnv(ManagerBasedEnv, gym.Env):
                 self.sim.render()
             # update buffers at sim dt
             self.scene.update(dt=self.physics_dt)
-
         # post-step:
         # -- update env counters (used for curriculum generation)
         self.episode_length_buf += 1  # step in current episode (per env)
