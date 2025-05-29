@@ -15,6 +15,7 @@ import isaaclab.utils.math as math_utils
 from isaaclab.assets import RigidObject
 from isaaclab.managers import CommandTerm
 from isaaclab.markers.visualization_markers import VisualizationMarkers
+from isaaclab.assets.articulation.articulation import Articulation
 
 if TYPE_CHECKING:
     from isaaclab.envs import ManagerBasedRLEnv
@@ -48,8 +49,8 @@ class InAirReOrientationCommand(CommandTerm):
         # initialize the base class
         super().__init__(cfg, env)
 
-        # object
         self.object: RigidObject = env.scene[cfg.asset_name]
+        self.robot: Articulation = env.scene[cfg.robot_name]
 
         # create buffers to store the command
         # -- command: (x, y, z)
@@ -69,6 +70,9 @@ class InAirReOrientationCommand(CommandTerm):
         self.metrics["orientation_error"] = torch.zeros(self.num_envs, device=self.device)
         self.metrics["previous_orientation_error"] = torch.zeros(self.num_envs, device=self.device)
         self.metrics["consecutive_success"] = torch.zeros(self.num_envs, device=self.device)
+        self.metrics["object_velocity_magnitude"] = torch.zeros(self.num_envs, device=self.device)
+        self.metrics["joint_velocity_magnitude"] = torch.zeros(self.num_envs, device=self.device)
+        
 
     def __str__(self) -> str:
         msg = "InAirManipulationCommandGenerator:\n"
@@ -98,15 +102,14 @@ class InAirReOrientationCommand(CommandTerm):
             self.object.data.root_quat_w, self.quat_command_w
         )
         
-        # -- compute velocity magnitude (both linear and angular)
+        # -- compute object velocity magnitude (both linear and angular)
         lin_vel = self.object.data.root_lin_vel_w
         ang_vel = self.object.data.root_ang_vel_w
-        self.metrics["velocity_magnitude"] = torch.norm(lin_vel, dim=1) + torch.norm(ang_vel, dim=1)
+        self.metrics["object_velocity_magnitude"] = torch.norm(lin_vel, dim=1) + torch.norm(ang_vel, dim=1)
         
-        # -- compute acceleration magnitude (both linear and angular)
-        lin_acc = self.object.data.body_lin_acc_w.squeeze(1)
-        ang_acc = self.object.data.body_ang_acc_w.squeeze(1)
-        self.metrics["acceleration_magnitude"] = torch.norm(lin_acc, dim=1) + torch.norm(ang_acc, dim=1)
+        # -- compute joint velocity magnitude
+        joint_vel = self.robot.data.joint_vel
+        self.metrics["joint_velocity_magnitude"] = torch.norm(joint_vel, dim=1)
         
         # -- compute the number of consecutive successes
         # Check all conditions: orientation error, velocity, and acceleration
@@ -140,9 +143,10 @@ class InAirReOrientationCommand(CommandTerm):
         orientation_success = self.metrics["orientation_error"] < self.cfg.orientation_success_threshold
         
         # Condition 2: check stability
-        velocity_success = self.metrics["velocity_magnitude"] < self.cfg.velocity_success_threshold  # threshold for velocity
+        object_vel_success = self.metrics["object_velocity_magnitude"] < self.cfg.object_vel_success_threshold  # threshold for velocity
+        joint_vel_success = self.metrics["joint_velocity_magnitude"] < self.cfg.joint_vel_success_threshold  # threshold for velocity
         
-        goal_resets = orientation_success & velocity_success
+        goal_resets = orientation_success & object_vel_success & joint_vel_success
         return goal_resets
 
     def _set_debug_vis_impl(self, debug_vis: TYPE_CHECKING):

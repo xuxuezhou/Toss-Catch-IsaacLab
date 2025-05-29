@@ -23,8 +23,6 @@ simulation_app = app_launcher.app
 
 """Rest everything follows."""
 
-import torch
-
 import isaaclab.sim as sim_utils
 from isaaclab.assets import AssetBaseCfg, RigidObjectCfg
 from isaaclab.scene import InteractiveScene, InteractiveSceneCfg
@@ -53,26 +51,6 @@ class ContactSensorSceneCfg(InteractiveSceneCfg):
 
     # robot
     robot = XARM_LEAP_HAND_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
-    # robot.init_state=ArticulationCfg.InitialStateCfg(
-    #     pos=(0.0, 0.0, 0.0),
-    #     rot=(1.0, 0.0, 0.0, 0.0),
-    #     joint_pos={
-    #         # xArm joints
-    #         "joint1": -1.5,
-    #         "joint2": -0.4,    
-    #         "joint3": 0.8,    
-    #         "joint4": 1.2,      
-    #         "joint5": 3.6,     
-    #         "joint6": 1.57,     
-    #         "joint7": 0.3, 
-    #         # hand joints
-    #         "^a_.*$": 0.0,
-    #     },
-    # )
-    
-    ft_sensor = ForceTorqueSensorCfg(
-        prim_path="{ENV_REGEX_NS}/Robot",
-    )
 
 
     # Rigid Object
@@ -139,8 +117,8 @@ def run_simulator(sim: sim_utils.SimulationContext, scene: InteractiveScene):
 
         # print information from the sensors
         print("-------------------------------")
-        print("Received joint forces: ", scene["ft_sensor"].data.joint_forces)
-        print("Received joint torques: ", scene["ft_sensor"].data.joint_torques)
+        import pdb;pdb.set_trace()
+        print("Received joint forces: ", scene["robot"].data.body_incoming_joint_wrench_b)
 
 
 

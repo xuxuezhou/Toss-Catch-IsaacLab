@@ -8,15 +8,13 @@ from __future__ import annotations
 from dataclasses import MISSING
 
 from isaaclab.envs.manager_based_rl_fsm_env_cfg import ManagerBasedRLFSMEnvCfg
+from isaaclab.envs.mdp.conditions import THRESHOLD
 import isaaclab.sim as sim_utils
 from isaaclab.assets import ArticulationCfg, AssetBaseCfg, RigidObjectCfg
-from isaaclab.envs import ManagerBasedRLEnv
-from isaaclab.envs import ManagerBasedRLFSMEnv
 from isaaclab.managers import EventTermCfg as EventTerm
 from isaaclab.managers import ObservationGroupCfg as ObsGroup
 from isaaclab.managers import ObservationTermCfg as ObsTerm
 from isaaclab.managers import RewardTermCfg as RewTerm
-from isaaclab.managers import CurriculumTermCfg as CurrTerm
 from isaaclab.managers import SceneEntityCfg
 from isaaclab.managers import TerminationTermCfg as DoneTerm
 from isaaclab.scene import InteractiveSceneCfg
@@ -26,9 +24,7 @@ from isaaclab.sim.spawners.materials.physics_materials_cfg import RigidBodyMater
 from isaaclab.utils import configclass
 from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR
 from isaaclab.utils.noise import AdditiveGaussianNoiseCfg as Gnoise
-from isaaclab.controllers.operational_space_cfg import OperationalSpaceControllerCfg
 from isaaclab.envs.mdp.actions.actions_cfg import OperationalSpaceControllerActionCfg
-from isaaclab.sensors.contact_sensor.contact_sensor_cfg import ContactSensorCfg
 
 import isaaclab_tasks.manager_based.manipulation.inair.mdp as mdp
 
@@ -77,17 +73,6 @@ class InAirObjectSceneCfg(InteractiveSceneCfg):
         ),
     )
     
-    # contact sensor
-    sensor = ContactSensorCfg()
-    
-    # link6_sensor = ContactSensorCfg(
-    #     prim_path="{ENV_REGEX_NS}/Robot/link6", 
-    #     update_period=0.0, 
-    #     history_length=6, 
-    #     debug_vis=True,
-    #     filter_prim_paths_expr=["{ENV_REGEX_NS}/object", "{ENV_REGEX_NS}/Robot"],
-    # )
-    
     # plane
     plane = AssetBaseCfg(
         prim_path="/World/GroundPlane",
@@ -118,10 +103,12 @@ class CommandsCfg:
 
     object_pose = mdp.InAirReOrientationCommandCfg(
         asset_name="object",
+        robot_name="robot",
         init_pos_offset=(0.0, 0.0, 0.0),
         update_goal_on_success=True,
-        orientation_success_threshold=0.1,
-        velocity_success_threshold=0.0001,
+        orientation_success_threshold=THRESHOLD.orien_thresh,
+        object_vel_success_threshold=THRESHOLD.object_static_thresh,
+        joint_vel_success_threshold=THRESHOLD.robot_static_thresh,
         make_quat_unique=True,
         marker_pos_offset=(0.0, 0.0, 0.5),
         debug_vis=True,
@@ -131,13 +118,6 @@ class CommandsCfg:
 @configclass
 class ActionsCfg:
     """Action specifications for the MDP."""
-
-    # joint_pos = mdp.EMAJointPositionToLimitsActionCfg(
-    #     asset_name="robot",
-    #     joint_names=[".*"],
-    #     alpha=0.95,
-    #     rescale_to_limits=True,
-    # )
     
     arm_action = OperationalSpaceControllerActionCfg()
     hand_action = mdp.EMAJointPositionToLimitsActionCfg()
@@ -188,9 +168,9 @@ class ObservationsCfg:
             params={"asset_cfg": SceneEntityCfg("object"), "command_name": "object_pose", "make_quat_unique": False},
         )
         
-        contact_forces = ObsTerm(
-            func=mdp.contact_forces_obs,
-            params={"sensor_cfg": SceneEntityCfg(name="sensor") },
+        joint_wrench = ObsTerm(
+            func=mdp.joint_wrench_obs,
+            params={"asset_cfg": SceneEntityCfg(name="robot") },
         )
 
         # # -- action terms
@@ -278,95 +258,7 @@ class RewardsCfg:
         weight=1.0,
         params={},
     )
-
-    # -- task
-    # track_position_inv_l2 = RewTerm(
-    #     func=mdp.track_position_inv_l2,
-    #     weight=0.1,
-    #     params={"object_cfg": SceneEntityCfg("object"), "pos_eps": 0.1, "command_name": "object_pose"},
-    # )
-    # track_orientation_inv_l2 = RewTerm(
-    #     func=mdp.track_orientation_inv_l2,
-    #     # weight=40,
-    #     weight=100,
-    #     params={"object_cfg": SceneEntityCfg("object"), "rot_eps": 0.1, "command_name": "object_pose"},
-    # )
-    # track_delta_orientation_l2 = RewTerm(
-    #     func=mdp.track_delta_orientation_l2,
-    #     # weight=20.0,
-    #     # weight=200.0,
-    #     weight=2000.0, 
-    #     params={"object_cfg": SceneEntityCfg("object"), "command_name": "object_pose"},
-    # )
-    # above_palm = RewTerm(
-    #     func=mdp.above_palm,
-    #     weight=50.0,
-    #     params={"asset_cfg": SceneEntityCfg("robot"), "object_cfg": SceneEntityCfg("object")},
-    # )
-    # success_bonus = RewTerm(
-    #     func=mdp.success_bonus,
-    #     weight=300.0,
-    #     params={"object_cfg": SceneEntityCfg("object"), "command_name": "object_pose"},
-    # )
     
-    # airborne_rotation_bonus = RewTerm(
-    #     func=mdp.airborne_rotation_bonus,
-    #     weight=160.0,
-    #     params={"object_cfg": SceneEntityCfg("object")},
-    # )
-    
-    # # -- Encourage throwing and rotation
-    # throwing_bonus = RewTerm(
-    #     func=mdp.object_away_from_palm,
-    #     weight=1.0,
-    #     params={"threshold": 0.05},
-    # )
-    # object_ang_vel_bonus = RewTerm(
-    #     func=mdp.angular_velocity_bonus,
-    #     weight=0.01,
-    #     params={"asset_cfg": SceneEntityCfg("object")},
-    # )
-
-    # -- penalties
-    
-    # palm_drop_penalty = RewTerm(
-    #     func=mdp.palm_drop_penalty,
-    #     weight=-50.0,
-    #     params={
-    #         "asset_cfg": SceneEntityCfg("robot"),
-    #         "init_pos_z": 0.58,
-    #     },
-    # )
-    
-    # velocity_penalty = RewTerm(
-    #     func=mdp.velocity_penalty,
-    #     weight=-10.0,
-    #     params={"object_cfg": SceneEntityCfg("object"), "velocity_threshold": 0.01, "command_name": "object_pose"},
-    # )
-    # acceleration_penalty = RewTerm(
-    #     func=mdp.acceleration_penalty,
-    #     weight=-10.0,
-    #     params={"object_cfg": SceneEntityCfg("object"), "acceleration_threshold": 0.01, "command_name": "object_pose"},
-    # )
-    # object_dropping_penalty: RewTerm = RewTerm(
-    #     func=mdp.object_away_from_palm,
-    #     weight=-1.0,
-    #     params={"threshold": 0.3},
-    # ) 
-    # joint_vel_l2 = RewTerm(func=mdp.joint_vel_l2, weight=-2.5e-5)
-    
-    # action_l2 = RewTerm(func=mdp.hand_action_l2, weight=-0.01)
-    # action_l2 = RewTerm(func=mdp.arm_action_l2, weight=-0.01)
-    # action_rate_l2 = RewTerm(func=mdp.hand_action_rate_l2, weight=-0.1)
-
-    # -- optional penalties (these are disabled by default)
-    # object_away_penalty = RewTerm(
-    #     func=mdp.is_terminated_term,
-    #     weight=-0.0,
-    #     params={"term_keys": "object_out_of_reach"},
-    # )
-    
-    # joint_deviation_l1 = RewTerm(func=mdp.joint_deviation_l1, weight=-1)
 
 @configclass
 class TerminationsCfg:
@@ -384,23 +276,6 @@ class TerminationsCfg:
     # object_out_of_reach = DoneTerm(
     #     func=mdp.object_away_from_goal, params={"threshold": 0.24, "command_name": "object_pose"}
     # )
-
-# @configclass
-# class CurriculumCfg:
-#     """Curriculum terms for the MDP."""
-
-#     track_position_inv_l2 = CurrTerm(
-#         func=mdp.modify_reward_weight, params={"term_name": "track_position_inv_l2", "weight": 10, "num_steps": 2000}
-#     )
-#     track_orientation_inv_l2 = CurrTerm(
-#         func=mdp.modify_reward_weight, params={"term_name": "track_orientation_inv_l2", "weight": 10, "num_steps": 2000}
-#     )
-#     throwing_bonus = CurrTerm(
-#         func=mdp.modify_reward_weight, params={"term_name": "throwing_bonus", "weight": 5, "num_steps": 2000}
-#     )
-#     success_bonus = CurrTerm(
-#         func=mdp.modify_reward_weight, params={"term_name": "success_bonus", "weight": 250, "num_steps": 2000}
-#     )
 
 ##
 # Environment configuration

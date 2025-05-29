@@ -96,7 +96,7 @@ def end_effector_pos(
         The end effector position in the world frame.
     """
     robot = env.scene[robot_cfg.name]
-    link_state = robot.data.body_link_state_w[:, 6]
+    link_state = robot.data.body_link_state_w[:, 9]
     end_effector_pos = link_state[:, :3]
     
     return end_effector_pos
@@ -116,8 +116,8 @@ def end_effector_lin_vel(
         The end effector velocity in the world frame.
     """
     robot = env.scene[robot_cfg.name]
-    link_state = robot.data.body_link_state_w[:, 6] 
-    end_effector_lin_vel = link_state[:, 7:10] # [pos, quat, lin_vel, ang_vel]
+    link_state = robot.data.body_link_state_w[:, 9] 
+    end_effector_lin_vel = link_state[:, 7:10] # [pos: 3, quat: 4, lin_vel: 3, ang_vel: 3]
     
     return end_effector_lin_vel
 
@@ -136,7 +136,7 @@ def end_effector_ang_vel(
         The end effector velocity in the world frame.
     """
     robot = env.scene[robot_cfg.name]
-    link_state = robot.data.body_link_state_w[:, 6] 
+    link_state = robot.data.body_link_state_w[:, 9] 
     end_effector_ang_vel = link_state[:, 10:] # [pos, quat, lin_vel, ang_vel]
     
     return end_effector_ang_vel
@@ -149,6 +149,7 @@ def hand_joint_pos_limit_normalized(
     Note: Only the joints configured in :attr:`asset_cfg.joint_ids` will have their normalized positions returned.
     """
     asset: Articulation = env.scene[asset_cfg.name]
+    
     return math_utils.scale_transform(
         asset.data.joint_pos[:, asset_cfg.joint_ids][:,7:],
         asset.data.soft_joint_pos_limits[:, asset_cfg.joint_ids, 0][:,7:],
@@ -164,14 +165,9 @@ def hand_joint_vel_rel(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = Scene
     asset: Articulation = env.scene[asset_cfg.name]
     return asset.data.joint_vel[:, asset_cfg.joint_ids][:,7:] - asset.data.default_joint_vel[:, asset_cfg.joint_ids][:,7:]
 
-
-def contact_forces_obs(env: ManagerBasedRLEnv, sensor_cfg: SceneEntityCfg) -> torch.Tensor:
-    """Returns contact force as observation per environment."""
-    contact_sensor = env.scene.sensors[sensor_cfg.name]
-    current_contact_forces = contact_sensor.data.net_forces_w[:, sensor_cfg.body_ids, :]
-
-    return current_contact_forces.reshape(env.num_envs, -1)
+def joint_wrench_obs(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")):
+    robot = env.scene[asset_cfg.name]
+    joint_wrench = robot.data.body_incoming_joint_wrench_b[:, 11, :3] # (num_envs, num_links, 6)
+    joint_wrench_flat = joint_wrench.reshape(joint_wrench.shape[0], -1)
     
-    # filter_contact_forces = contact_sensor.data.net_forces_w[:, sensor_cfg.body_ids, :]
-
-    # return filter_contact_forces.reshape(env.num_envs, -1)
+    return joint_wrench_flat

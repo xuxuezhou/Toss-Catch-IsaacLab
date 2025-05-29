@@ -26,6 +26,9 @@ class InAirReOrientationCommandCfg(CommandTermCfg):
 
     asset_name: str = MISSING
     """Name of the asset in the environment for which the commands are generated."""
+    
+    robot_name: str = MISSING
+    """Name of the asset in the environment for which the commands are generated."""
 
     init_pos_offset: tuple[float, float, float] = (0.0, 0.0, 0.0)
     """Position offset of the asset from its default position.
@@ -45,8 +48,11 @@ class InAirReOrientationCommandCfg(CommandTermCfg):
     orientation_success_threshold: float = MISSING
     """Threshold for the orientation error to consider the goal orientation to be reached."""
     
-    velocity_success_threshold: float = MISSING
+    object_vel_success_threshold: float = MISSING
     """Threshold for the velocity error to consider the goal orientation to be reached."""
+    
+    joint_vel_success_threshold: float = MISSING
+    """Threshold for the joint velocity error to consider the goal orientation to be reached."""
     
     update_goal_on_success: bool = MISSING
     """Whether to update the goal orientation when the goal orientation is reached."""
@@ -63,7 +69,7 @@ class InAirReOrientationCommandCfg(CommandTermCfg):
         markers={
             "goal": sim_utils.UsdFileCfg(
                 usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/DexCube/dex_cube_instanceable.usd",
-                scale=(1.0, 1.0, 1.0),
+                scale=(2.25, 2.25, 2.25),
             ),
         },
     )
