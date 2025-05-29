@@ -171,6 +171,15 @@ def main():
             # object_vel_magnitude = torch.norm(object.data.root_lin_vel_w, dim=1) + torch.norm(object.data.root_ang_vel_w, dim=1)
             # print(f"Object height is {object_z}")
             # print(f"Object velocity is {object_vel_magnitude}")
+            # robot = env.unwrapped.scene["robot"]
+            # joint_wrench = robot.data.body_incoming_joint_wrench_b # (num_envs, num_links, 6)
+            # joint_forces = joint_wrench[:, :, :3]
+            
+            # hand_joint_forces = joint_forces[:, 11, :3]
+            # hand_joint_forces_mean = torch.mean(torch.norm(hand_joint_forces, dim=-1), dim=-1)
+            # print(hand_joint_forces_mean)
+            # import pdb;pdb.set_trace()
+            
             # if object_z == 0.85:
             #     import pdb;pdb.set_trace()
             # env stepping

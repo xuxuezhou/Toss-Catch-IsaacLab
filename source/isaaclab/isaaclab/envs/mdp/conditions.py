@@ -15,7 +15,8 @@ from isaaclab.managers.scene_entity_cfg import SceneEntityCfg
 
 if TYPE_CHECKING:
     from isaaclab.envs import ManagerBasedRLEnv
-    
+
+from typing import Tuple 
 
 """
 Transition Conditions
@@ -23,15 +24,15 @@ Transition Conditions
 """
 
 class THRESHOLD:
-    x_thresh: float = 0.10
-    y_thresh: float = 0.10
-    z_thresh: float = 0.20
+    x_thresh: float = 0.05
+    y_thresh: float = 0.05
+    z_thresh: float = 0.15
     
     object_static_thresh: float = 0.5
     robot_static_thresh: float = 0.5
     
     orien_thresh: float = 0.1
-    force_thresh: float = 30
+    force_thresh_interval: Tuple[float, float] = (10.0, 50.0)
     
     throw_thresh: float = z_thresh + 0.1
 
@@ -90,19 +91,24 @@ def is_orientation_aligned(
 
 def has_object_hand_contact(
     env: ManagerBasedRLEnv, 
-    force_thresh: float = THRESHOLD.force_thresh,
+    force_thresh_interval: Tuple[float, float] = THRESHOLD.force_thresh_interval,
     robot_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
 ) -> torch.Tensor:    
     robot = env.scene[robot_cfg.name]
     joint_wrench = robot.data.body_incoming_joint_wrench_b # (num_envs, num_links, 6)
     joint_forces = joint_wrench[:, :, :3]
     
-    hand_joint_forces = joint_forces[:, 10, :3]
-    has_contact = torch.mean(torch.norm(hand_joint_forces, dim=-1), dim=-1) > force_thresh
+    palm_joint_forces = joint_forces[:, 11, :] 
+    force_magnitudes = torch.norm(palm_joint_forces, dim=-1)  # (num_envs,)
+    
+    min_thresh, max_thresh = force_thresh_interval
+    has_contact = (force_magnitudes > min_thresh) & (force_magnitudes < max_thresh)
     
     return has_contact
 
 def is_static_and_inhand(env: ManagerBasedRLEnv) -> torch.Tensor:
+    # if has_object_hand_contact(env) & is_object_static(env) & is_robot_static(env):
+    #     import pdb;pdb.set_trace()
     return has_object_hand_contact(env) & is_object_static(env) & is_robot_static(env) # contact means inhand 
 
 def is_object_ready_to_end(env: ManagerBasedRLEnv) -> torch.Tensor:

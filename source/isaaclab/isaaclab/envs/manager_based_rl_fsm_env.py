@@ -29,7 +29,7 @@ class FSMRewardScales_0:
     joint_vel_l2: float = -1e-3
     
     # hold object (with palm)
-    above_palm: float = 100.0
+    above_palm: float = 150.0
     open_fingertips: float = 100.0
     grasp_object: float = -0.0 
     track_object_l2: float = -50.0
@@ -127,9 +127,9 @@ class ManagerBasedRLFSMEnv(ManagerBasedRLEnv):
         info["episode"] = {
             "fsm_state": self.fsm_state.clone().detach(),
             
-        """
-        INIT STATE
-        """
+        # """
+        # INIT STATE
+        # """
             "INIT/object_vel_penalty": ((self.fsm_state == FSMState.INIT) * (FSMRewardScales_0.object_vel_penalty * obj_vel)).detach(),
             "INIT/joint_vel_l2": ((self.fsm_state == FSMState.INIT) * (FSMRewardScales_0.joint_vel_l2 * joint_vel)).detach(),
             
@@ -154,9 +154,9 @@ class ManagerBasedRLFSMEnv(ManagerBasedRLEnv):
             ).detach(),
             
             
-        """
-        BEFORE THROW STATE
-        """
+        # """
+        # BEFORE THROW STATE
+        # """
             "BEFORE_THROW/undesired_contacts": ((self.fsm_state == FSMState.BEFORE_THROW) * (FSMRewardScales_1.undesired_forces * undesired)).detach(),
             "BEFORE_THROW/track_object_l2": ((self.fsm_state == FSMState.BEFORE_THROW) * (FSMRewardScales_1.track_object_l2 * track_object)).detach(),
             
@@ -168,9 +168,9 @@ class ManagerBasedRLFSMEnv(ManagerBasedRLEnv):
                 )
             ).detach(),
             
-        """
-        IN AIR STATE
-        """   
+        # """
+        # IN AIR STATE
+        # """   
             "IN_AIR/above_palm": ((self.fsm_state == FSMState.IN_AIR) * (FSMRewardScales_2.above_palm * above)).detach(),
             "IN_AIR/open_fingertips": ((self.fsm_state == FSMState.IN_AIR) * (FSMRewardScales_2.open_fingertips * fingertip_dis)).detach(),
             "IN_AIR/track_object_l2": ((self.fsm_state == FSMState.IN_AIR) * (FSMRewardScales_2.track_object_l2 * track_object)).detach(),
@@ -192,9 +192,9 @@ class ManagerBasedRLFSMEnv(ManagerBasedRLEnv):
                 )
             ).detach(),
 
-        """
-        BACK IN HAND STATE
-        """   
+        # """
+        # BACK IN HAND STATE
+        # """   
             "BACK_IN_HAND/object_vel_penalty": ((self.fsm_state == FSMState.BACK_IN_HAND) * (FSMRewardScales_3.object_vel_penalty * obj_vel)).detach(),
             "BACK_IN_HAND/joint_vel_l2": ((self.fsm_state == FSMState.BACK_IN_HAND) * (FSMRewardScales_3.joint_vel_l2 * joint_vel)).detach(),
             
@@ -287,8 +287,8 @@ class ManagerBasedRLFSMEnv(ManagerBasedRLEnv):
 
     def update_fsm_state(self):
         """Update FSM state based on transition conditions."""
-        cond_0_to_1 = is_static_and_inhand(self)
-        # cond_0_to_1 = impossible_condition(self)
+        # cond_0_to_1 = is_static_and_inhand(self)
+        cond_0_to_1 = impossible_condition(self)
         cond_1_to_2 = ~has_object_hand_contact(self)
         cond_1_to_end = is_object_ready_to_end(self)
         cond_2_to_3 = has_object_hand_contact(self)
