@@ -63,7 +63,7 @@ class InAirObjectSceneCfg(InteractiveSceneCfg):
             collision_props=sim_utils.CollisionPropertiesCfg(
                 collision_enabled=True,
             ),
-            mass_props=sim_utils.MassPropertiesCfg(density=100.0),
+            mass_props=sim_utils.MassPropertiesCfg(density=400.0),
         ),
         init_state=RigidObjectCfg.InitialStateCfg(
             # pos=(0.4, -0.4,  1.2), # 2*2*2

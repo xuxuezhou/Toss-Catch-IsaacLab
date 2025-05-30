@@ -127,6 +127,14 @@ def body_lin_acc_l2(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEnt
     asset: Articulation = env.scene[asset_cfg.name]
     return torch.sum(torch.norm(asset.data.body_lin_acc_w[:, asset_cfg.body_ids, :], dim=-1), dim=1)
 
+def body_vel_l2(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
+    """Penalize the velocity of bodies using L2-kernel."""
+    asset: Articulation = env.scene[asset_cfg.name]
+    body_lin_vel_sum = torch.sum(torch.norm(asset.data.body_lin_vel_w[:, 1:10, :], dim=-1), dim=1)
+    body_ang_vel_sum = torch.sum(torch.norm(asset.data.body_ang_vel_w[:, 1:10, :], dim=-1), dim=1)
+    body_vel_l2 = body_lin_vel_sum + body_ang_vel_sum
+    
+    return body_vel_l2
 
 """
 Joint penalties.
@@ -157,7 +165,18 @@ def joint_vel_l2(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntity
     """
     # extract the used quantities (to enable type-hinting)
     asset: Articulation = env.scene[asset_cfg.name]
+    # print(torch.sum(torch.square(asset.data.joint_vel[:, asset_cfg.joint_ids]), dim=1))
+    # import pdb;pdb.set_trace()
     return torch.sum(torch.square(asset.data.joint_vel[:, asset_cfg.joint_ids]), dim=1)
+
+def arm_joint_vel_l2(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
+    """Penalize joint velocities on the articulation using L2 squared kernel.
+
+    NOTE: Only the arm joints will have their joint velocities contribute to the term.
+    """
+    # extract the used quantities (to enable type-hinting)
+    asset: Articulation = env.scene[asset_cfg.name]
+    return torch.sum(torch.square(asset.data.joint_vel[:, :7]), dim=1)
 
 
 def joint_acc_l2(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:

@@ -145,8 +145,11 @@ def run_simulator(sim: sim_utils.SimulationContext, entities: dict[str, Articula
             print(f'[INFO]: Joint positions: {robot.cfg.init_state.joint_pos}')
 
             joint_pos, joint_vel = robot.data.default_joint_pos.clone(), robot.data.default_joint_vel.clone()
+            joint_vel_sum = torch.sum(torch.square(robot.data.joint_vel[:, :]), dim=1)
             print(f'[INFO]: Joint positions: {joint_pos}')
             print(f'[INFO]: Joint velocities: {joint_vel}')
+            print(f'[INFO]: Joint velocities sum: {joint_vel_sum}')
+            
             # joint_pos += torch.rand_like(joint_pos) * 0.1
             robot.write_joint_state_to_sim(joint_pos, joint_vel)
             # clear internal buffers

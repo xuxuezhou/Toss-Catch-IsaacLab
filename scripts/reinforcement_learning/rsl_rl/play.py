@@ -169,15 +169,25 @@ def main():
             # object = env.unwrapped.scene["object"]
             # object_z = object.data.root_pos_w[:, 2]
             # object_vel_magnitude = torch.norm(object.data.root_lin_vel_w, dim=1) + torch.norm(object.data.root_ang_vel_w, dim=1)
-            # print(f"Object height is {object_z}")
+            # # print(f"Object height is {object_z}")
             # print(f"Object velocity is {object_vel_magnitude}")
-            # robot = env.unwrapped.scene["robot"]
-            # joint_wrench = robot.data.body_incoming_joint_wrench_b # (num_envs, num_links, 6)
-            # joint_forces = joint_wrench[:, :, :3]
+            robot = env.unwrapped.scene["robot"]
+            joint_wrench = robot.data.body_incoming_joint_wrench_b # (num_envs, num_links, 6)
             
-            # hand_joint_forces = joint_forces[:, 11, :3]
-            # hand_joint_forces_mean = torch.mean(torch.norm(hand_joint_forces, dim=-1), dim=-1)
-            # print(hand_joint_forces_mean)
+            joint_forces = joint_wrench[:, :, :3]
+            hand_joint_forces = joint_forces[:, 11, :3]
+            hand_joint_forces_mean = torch.mean(torch.norm(hand_joint_forces, dim=-1), dim=-1)
+            joint_vel_magnitude = torch.mean(torch.square(robot.data.joint_vel), dim=1)
+            default_joint_vel_magnitude = torch.mean(torch.square(robot.data.default_joint_vel), dim=1)
+
+            body_lin_vel_sum = torch.sum(torch.norm(robot.data.body_lin_vel_w[:, :, :], dim=-1), dim=1)
+            body_ang_vel_sum = torch.sum(torch.norm(robot.data.body_ang_vel_w[:, :, :], dim=-1), dim=1)
+            body_vel_l2 = body_lin_vel_sum + body_ang_vel_sum
+            
+            # print(f"Palm joint force is {hand_joint_forces_mean}")
+            # print(f"Robot joint velocity is {joint_vel_magnitude}")
+            # print(f"Robot default joint velocity is {default_joint_vel_magnitude}")
+            # print(f"Robot link velocity is {body_vel_l2}")
             # import pdb;pdb.set_trace()
             
             # if object_z == 0.85:

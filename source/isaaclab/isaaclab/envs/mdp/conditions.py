@@ -29,10 +29,10 @@ class THRESHOLD:
     z_thresh: float = 0.15
     
     object_static_thresh: float = 0.5
-    robot_static_thresh: float = 0.5
+    robot_static_thresh: float = 3.5
     
     orien_thresh: float = 0.1
-    force_thresh_interval: Tuple[float, float] = (10.0, 50.0)
+    force_thresh_interval: Tuple[float, float] = (15.0, 35.0)
     
     throw_thresh: float = z_thresh + 0.1
 
@@ -78,8 +78,8 @@ def is_robot_static(
 ) -> torch.Tensor:
     
     robot = env.scene[robot_cfg.name]
-    joint_vel_magnitude = torch.norm(robot.data.joint_vel, dim=1)
-    is_static = joint_vel_magnitude < threshold
+    joint_vel_mean = torch.mean(robot.data.joint_vel, dim=1)
+    is_static = joint_vel_mean < threshold
     return is_static
 
 def is_orientation_aligned(
