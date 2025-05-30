@@ -68,6 +68,16 @@ def track_object_l2(
 
     return torch.norm(delta_xy, dim=1)
 
+def track_delta_object_pos(
+    env: ManagerBasedRLEnv,
+    command_name: str,
+) -> torch.Tensor:
+    command_term: InAirReOrientationCommand = env.command_manager.get_term(command_name)
+    current_error = abs(command_term.metrics["object_pos_error"])
+    previous_error = abs(command_term.metrics["previous_object_pos_error"])
+    
+    return previous_error - current_error
+
 def palm_drop_penalty(
     env: ManagerBasedRLEnv,
     init_pos_z: torch.Tensor,

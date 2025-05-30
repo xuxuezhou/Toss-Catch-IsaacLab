@@ -69,6 +69,10 @@ class InAirReOrientationCommand(CommandTerm):
         # -- metrics
         self.metrics["orientation_error"] = torch.zeros(self.num_envs, device=self.device)
         self.metrics["previous_orientation_error"] = torch.zeros(self.num_envs, device=self.device)
+        self.metrics["object_pos_error"] = torch.zeros(self.num_envs, device=self.device)
+        self.metrics["previous_object_pos_error"] = torch.zeros(self.num_envs, device=self.device)
+        
+        
         self.metrics["consecutive_success"] = torch.zeros(self.num_envs, device=self.device)
         self.metrics["object_velocity_magnitude"] = torch.zeros(self.num_envs, device=self.device)
         self.metrics["joint_velocity_magnitude"] = torch.zeros(self.num_envs, device=self.device)
@@ -96,11 +100,14 @@ class InAirReOrientationCommand(CommandTerm):
         # logs data
         # -- store the previous orientation error before updating
         self.metrics["previous_orientation_error"] = self.metrics["orientation_error"].clone()
+        self.metrics["previous_object_pos_error"] = self.metrics["object_pos_error"].clone()
         
         # -- compute the orientation error
         self.metrics["orientation_error"] = math_utils.quat_error_magnitude(
             self.object.data.root_quat_w, self.quat_command_w
         )
+        # -- compute the pos distance error
+        self.metrics["object_pos_error"] = torch.norm(self.robot.data.body_link_state_w[:, 11, :3] - self.object.data.root_pos_w[:, :3])
         
         # -- compute object velocity magnitude (both linear and angular)
         lin_vel = self.object.data.root_lin_vel_w
