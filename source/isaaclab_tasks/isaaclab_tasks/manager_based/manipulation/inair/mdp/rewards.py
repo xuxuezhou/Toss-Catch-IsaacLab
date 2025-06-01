@@ -151,6 +151,14 @@ def undesired_forces(
     mean_force = torch.mean(forces_norm, dim=-1)
     
     return mean_force
+
+def desired_contact(
+    env: ManagerBasedRLEnv
+) -> torch.Tensor:
+    return torch.where(has_object_hand_contact(env),1,-1)
     
-def dummy_reward(env):
+def dummy_reward(env: ManagerBasedRLEnv) -> torch.Tensor: 
     return torch.zeros(env.num_envs, device=env.device)
+
+def transition_reward(env: ManagerBasedRLEnv) -> torch.Tensor:
+    return torch.ones(env.num_envs, device=env.device)

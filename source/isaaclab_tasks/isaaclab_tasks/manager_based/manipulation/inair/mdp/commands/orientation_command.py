@@ -107,7 +107,10 @@ class InAirReOrientationCommand(CommandTerm):
             self.object.data.root_quat_w, self.quat_command_w
         )
         # -- compute the pos distance error
-        self.metrics["object_pos_error"] = torch.norm(self.robot.data.body_link_state_w[:, 11, :3] - self.object.data.root_pos_w[:, :3])
+        self.metrics["object_pos_error"] = torch.norm(
+            self.robot.data.body_link_state_w[:, 11, :3] - self.object.data.root_pos_w[:, :3], 
+            dim=-1
+        )
         
         # -- compute object velocity magnitude (both linear and angular)
         lin_vel = self.object.data.root_lin_vel_w

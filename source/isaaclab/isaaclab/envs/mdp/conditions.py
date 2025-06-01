@@ -32,7 +32,7 @@ class THRESHOLD:
     robot_static_thresh: float = 3.5
     
     orien_thresh: float = 0.1
-    force_thresh_interval: Tuple[float, float] = (15.0, 35.0)
+    force_thresh_interval: Tuple[float, float] = (-100.0, 0.0)
     
     throw_thresh: float = z_thresh + 0.1
 
@@ -96,13 +96,11 @@ def has_object_hand_contact(
 ) -> torch.Tensor:    
     robot = env.scene[robot_cfg.name]
     joint_wrench = robot.data.body_incoming_joint_wrench_b # (num_envs, num_links, 6)
-    joint_forces = joint_wrench[:, :, :3]
-    
-    palm_joint_forces = joint_forces[:, 11, :] 
-    force_magnitudes = torch.norm(palm_joint_forces, dim=-1)  # (num_envs,)
+    joint_force_z = joint_wrench[:, :, 2]
+    palm_joint_force_z = joint_force_z[:, 11] # (num_envs,)
     
     min_thresh, max_thresh = force_thresh_interval
-    has_contact = (force_magnitudes > min_thresh) & (force_magnitudes < max_thresh)
+    has_contact = (palm_joint_force_z > min_thresh) & (palm_joint_force_z < max_thresh)
     
     return has_contact
 

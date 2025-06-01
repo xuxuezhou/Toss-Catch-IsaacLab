@@ -167,7 +167,7 @@ def hand_joint_vel_rel(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = Scene
 
 def joint_wrench_obs(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")):
     robot = env.scene[asset_cfg.name]
-    joint_wrench = robot.data.body_incoming_joint_wrench_b[:, 11, :3] # (num_envs, num_links, 6)
+    joint_wrench = robot.data.body_incoming_joint_wrench_b[:, 11, :] # (num_envs, num_links, 6)
     joint_wrench_flat = joint_wrench.reshape(joint_wrench.shape[0], -1)
     
     return joint_wrench_flat
