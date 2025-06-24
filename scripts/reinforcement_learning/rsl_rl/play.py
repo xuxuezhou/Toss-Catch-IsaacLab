@@ -177,10 +177,21 @@ def main():
             hand_joint_forces = joint_wrench[:, 11, :3]
             hand_joint_torques = joint_wrench[:, 11, 3:]
             hand_joint_forces_z = joint_wrench[:, 11, 2]
+            finger_joint_forces_z = joint_wrench[:, -4:, 2]
             hand_joint_torques_z = joint_wrench[:, 11, 5]
             hand_joint_forces_mean = torch.mean(torch.norm(hand_joint_forces, dim=-1), dim=-1)
             hand_joint_torques_mean = torch.mean(torch.norm(hand_joint_torques, dim=-1), dim=-1)
+            # link_eef
+            link_eef_pos = robot.data.body_link_state_w[:, 9][:, :3]
+            link_7_pos = robot.data.body_link_state_w[:, 8][:, :3]
+            # print(f"Link_eef Pos is {link_eef_pos}")
+            # print(f"Link_7 Pos is {link_7_pos}")
             
+            contact_sensor = env.unwrapped.scene.sensors["sensor"]
+            filter_contact_forces = contact_sensor.data.force_matrix_w
+            is_contact = torch.max(torch.norm(filter_contact_forces[:, :, :], dim=-1), dim=1)[0] > 0
+            # print(is_contact)
+            # import pdb;pdb.set_trace()
             
             joint_vel_magnitude = torch.mean(torch.square(robot.data.joint_vel), dim=1)
             default_joint_vel_magnitude = torch.mean(torch.square(robot.data.default_joint_vel), dim=1)
@@ -191,14 +202,15 @@ def main():
             
             # print(f"Palm joint force is {hand_joint_forces_mean}")
             # print(f"Palm joint torque is {hand_joint_torques_mean}")
-            print(f"Palm joint force_z is {hand_joint_forces_z}")
+            # print(f"Palm joint force_z is {hand_joint_forces_z}")
+            # print(f"Finger joint force_z is {finger_joint_forces_z}")
             # print(f"Palm joint torque_z is {hand_joint_torques_z}")
             # print(f"Palm joint force-torque is {joint_wrench[:, 11, :]}")
             # print(f"Robot joint velocity is {joint_vel_magnitude}")
             # print(f"Robot default joint velocity is {default_joint_vel_magnitude}")
             # print(f"Robot link velocity is {body_vel_l2}")
             # import pdb;pdb.set_trace()
-            time.sleep(0.3)
+            # time.sleep(0.3)
             # if object_z == 0.85:
             #     import pdb;pdb.set_trace()
             # env stepping

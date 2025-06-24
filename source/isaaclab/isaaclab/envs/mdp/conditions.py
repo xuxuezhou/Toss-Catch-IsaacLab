@@ -32,7 +32,8 @@ class THRESHOLD:
     robot_static_thresh: float = 3.5
     
     orien_thresh: float = 0.1
-    force_thresh_interval: Tuple[float, float] = (-100.0, 0.0)
+    force_thresh = 0.0
+    # force_thresh_interval: Tuple[float, float] = (-100.0, 0.0)
     
     throw_thresh: float = z_thresh + 0.1
 
@@ -89,20 +90,30 @@ def is_orientation_aligned(
     orientation_error = env.command_manager.get_term("object_pose").metrics["orientation_error"]
     return orientation_error < threshold
 
+# def has_object_hand_contact(
+#     env: ManagerBasedRLEnv, 
+#     force_thresh_interval: Tuple[float, float] = THRESHOLD.force_thresh_interval,
+#     robot_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+# ) -> torch.Tensor:    
+#     robot = env.scene[robot_cfg.name]
+#     joint_wrench = robot.data.body_incoming_joint_wrench_b # (num_envs, num_links, 6)
+#     joint_force_z = joint_wrench[:, :, 2]
+#     palm_joint_force_z = joint_force_z[:, 11] # (num_envs,)
+    
+#     min_thresh, max_thresh = force_thresh_interval
+#     has_contact = (palm_joint_force_z > min_thresh) & (palm_joint_force_z < max_thresh)
+    
+#     return has_contact
+
 def has_object_hand_contact(
     env: ManagerBasedRLEnv, 
-    force_thresh_interval: Tuple[float, float] = THRESHOLD.force_thresh_interval,
-    robot_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
-) -> torch.Tensor:    
-    robot = env.scene[robot_cfg.name]
-    joint_wrench = robot.data.body_incoming_joint_wrench_b # (num_envs, num_links, 6)
-    joint_force_z = joint_wrench[:, :, 2]
-    palm_joint_force_z = joint_force_z[:, 11] # (num_envs,)
-    
-    min_thresh, max_thresh = force_thresh_interval
-    has_contact = (palm_joint_force_z > min_thresh) & (palm_joint_force_z < max_thresh)
-    
-    return has_contact
+    force_thresh: float = THRESHOLD.force_thresh,
+    sensor_cfg: SceneEntityCfg = SceneEntityCfg("sensor"),
+) -> torch.Tensor:   
+    contact_sensor = env.scene.sensors[sensor_cfg.name]
+    filter_contact_forces = contact_sensor.data.force_matrix_w 
+    is_contact = torch.max(torch.norm(filter_contact_forces[:, :, sensor_cfg.body_ids], dim=-1), dim=1)[0] > force_thresh
+    return is_contact.squeeze()
 
 def is_static_and_inhand(env: ManagerBasedRLEnv) -> torch.Tensor:
     # if has_object_hand_contact(env) & is_object_static(env) & is_robot_static(env):

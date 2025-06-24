@@ -37,7 +37,7 @@ from isaaclab.assets.articulation.articulation_cfg import ArticulationCfg
 ##
 # Pre-defined configs
 ##
-from isaaclab_assets.robots.xarm_leap import XARM_LEAP_HAND_CFG  # isort: skip
+from isaaclab_assets.robots.xarm import XARM_CFG  # isort: skip
 import time
 
 
@@ -54,29 +54,13 @@ class ContactSensorSceneCfg(InteractiveSceneCfg):
     )
 
     # robot
-    robot = XARM_LEAP_HAND_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
-    robot.init_state=ArticulationCfg.InitialStateCfg(
-        pos=(0.0, 0.0, 0.0),
-        rot=(1.0, 0.0, 0.0, 0.0),
-        joint_pos={
-            # xArm joints
-            "joint1": -1.5,
-            "joint2": -0.4,    
-            "joint3": 0.8,    
-            "joint4": 1.2,      
-            "joint5": 3.6,     
-            "joint6": 1.57,     
-            "joint7": 0.3, 
-            # hand joints
-            "^a_.*$": 0.0,
-        },
-    )
+    robot = XARM_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
 
     # Rigid Object
     cube = RigidObjectCfg(
         prim_path="{ENV_REGEX_NS}/Cube",
         spawn=sim_utils.CuboidCfg(
-            size=(0.3, 0.5, 0.01),
+            size=(0.2, 0.2, 0.15),
             rigid_props=sim_utils.RigidBodyPropertiesCfg(),
             mass_props=sim_utils.MassPropertiesCfg(mass=100.0),
             collision_props=sim_utils.CollisionPropertiesCfg(),
@@ -84,51 +68,42 @@ class ContactSensorSceneCfg(InteractiveSceneCfg):
             visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.0, 1.0, 0.0), metallic=0.2),
         ),
         # init_state=RigidObjectCfg.InitialStateCfg(pos=(0.5, 0.5, 0.05)),
-        init_state=RigidObjectCfg.InitialStateCfg(pos=(0.2, 0.0, 0.0)),
+        init_state=RigidObjectCfg.InitialStateCfg(pos=(0.2, -0.2, 0.0)),
     )
     
-    object: RigidObjectCfg = RigidObjectCfg(
-        prim_path="{ENV_REGEX_NS}/object",
-        spawn=sim_utils.UsdFileCfg(
-            usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/DexCube/dex_cube_instanceable.usd",
-            # usd_path=f"/home/xuxuezhou/isaac-sim-assets-1/Assets/Isaac/4.5/Isaac/Props/Blocks/DexCube/dex_cube_instanceable.usd",
-            # usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Shapes/sphere_physics.usd",
-            # usd_path=f"/home/xuxuezhou/isaac-sim-assets-1/Assets/Isaac/4.5/Isaac/Props/Shapes/sphere_physics.usd",
-            # scale=(1.75, 1.75, 1.75),
-            scale=(2.25, 2.25, 2.25),
-            rigid_props=sim_utils.RigidBodyPropertiesCfg(
-                kinematic_enabled=False,
-                disable_gravity=False,
-                enable_gyroscopic_forces=True,
-                solver_position_iteration_count=8,
-                solver_velocity_iteration_count=0,
-                sleep_threshold=0.005,
-                stabilization_threshold=0.0025,
-                max_depenetration_velocity=1000.0,
-            ),
-            collision_props=sim_utils.CollisionPropertiesCfg(
-                collision_enabled=True,
-            ),
-            mass_props=sim_utils.MassPropertiesCfg(density=400.0),
-        ),
-        init_state=RigidObjectCfg.InitialStateCfg(
-            # pos=(0.4, -0.4,  1.2), # 2*2*2
-            # pos=(0.4, -0.4,  1.0), # 3*3*3
-            pos=(0.32, -0.35,  0.85), # 3*3*3 inhand
-            rot=(1.0, 0.0, 0.0, 0.0)
-        ),
-    )
+    # object: RigidObjectCfg = RigidObjectCfg(
+    #     prim_path="{ENV_REGEX_NS}/object",
+    #     spawn=sim_utils.UsdFileCfg(
+    #         usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/DexCube/dex_cube_instanceable.usd",
+    #         # scale=(1.75, 1.75, 1.75),
+    #         scale=(2.25, 2.25, 2.25),
+    #         rigid_props=sim_utils.RigidBodyPropertiesCfg(
+    #             kinematic_enabled=False,
+    #             disable_gravity=False,
+    #             enable_gyroscopic_forces=True,
+    #             solver_position_iteration_count=8,
+    #             solver_velocity_iteration_count=0,
+    #             sleep_threshold=0.005,
+    #             stabilization_threshold=0.0025,
+    #             max_depenetration_velocity=1000.0,
+    #         ),
+    #         collision_props=sim_utils.CollisionPropertiesCfg(
+    #             collision_enabled=True,
+    #         ),
+    #         mass_props=sim_utils.MassPropertiesCfg(mass=0.2),
+    #     ),
+    #     init_state=RigidObjectCfg.InitialStateCfg(
+    #         pos=(0.0, 0.0,  0.7), # 3*3*3 inhand
+    #         rot=(1.0, 0.0, 0.0, 0.0)
+    #     ),
+    # )
 
     contact_forces = ContactSensorCfg(
-        prim_path="{ENV_REGEX_NS}/Robot/palm_lower",
-        # prim_path="{ENV_REGEX_NS}/Robot/link7",
-        # prim_path="{ENV_REGEX_NS}/Robot/.*fingertip.*",
-        # prim_path="{ENV_REGEX_NS}/Robot/thumb_fingertip",
-        # prim_path="{ENV_REGEX_NS}/Robot/(palm_lower|.*fingertip.*)",
+        prim_path="{ENV_REGEX_NS}/Robot/link7",
         update_period=0.0,
         history_length=0,
         debug_vis=True,
-        filter_prim_paths_expr=["{ENV_REGEX_NS}/object"],
+        filter_prim_paths_expr=["{ENV_REGEX_NS}/Cube"],
     )
     
     # contact_forces = ContactSensorCfg(
@@ -192,7 +167,7 @@ def run_simulator(sim: sim_utils.SimulationContext, scene: InteractiveScene):
         print("Received force matrix of: ", scene["contact_forces"].data.force_matrix_w)
         # print("The norm of contact force: ", torch.max(torch.norm(scene["contact_forces"].data.force_matrix_w, dim=-1), dim=1)[0])
         print("Received contact force of: ", scene["contact_forces"].data.net_forces_w)
-        # time.sleep(0.3)
+        time.sleep(0.3)
 
 
 def main():

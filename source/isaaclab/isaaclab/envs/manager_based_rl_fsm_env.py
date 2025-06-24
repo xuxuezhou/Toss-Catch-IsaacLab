@@ -6,14 +6,14 @@ from isaaclab.envs.common import VecEnvObs
 from isaaclab.managers.scene_entity_cfg import SceneEntityCfg
 from isaaclab_tasks.manager_based.manipulation.inair.mdp.rewards import (
     grasp_object, open_fingertips, object_vel_penalty, palm_drop_penalty, above_palm, success_bonus,
-    track_delta_orientation_l2, track_orientation_inv_l2, track_object_l2, undesired_forces, track_delta_object_pos,
+    track_delta_orientation_l2, track_orientation_inv_l2, track_object_l2, track_delta_object_pos,
     desired_contact, transition_reward
 )
-from isaaclab.envs.mdp.rewards import joint_vel_l2, arm_joint_vel_l2, body_vel_l2
+from isaaclab.envs.mdp.rewards import joint_vel_l2, arm_joint_vel_l2, body_vel_l2, filtered_undesired_contacts
 
 from .manager_based_rl_env import ManagerBasedRLEnv
 from .manager_based_rl_fsm_env_cfg import ManagerBasedRLFSMEnvCfg
-from isaaclab.envs.mdp.conditions import has_object_hand_contact, impossible_condition, is_object_ready_to_end, is_static_and_inhand
+from isaaclab.envs.mdp.conditions import THRESHOLD, has_object_hand_contact, impossible_condition, is_object_ready_to_end, is_static_and_inhand
 
 class FSMState:
     INIT = 0
@@ -38,9 +38,9 @@ FSM_REWARD_TERMS = {
         RewardTerm("object_vel_penalty", object_vel_penalty, -0.1),
         RewardTerm("arm_joint_vel_l2", lambda env: arm_joint_vel_l2(env, SceneEntityCfg("robot")), -1e-2),
         RewardTerm("joint_vel_l2", lambda env: joint_vel_l2(env, SceneEntityCfg("robot")), -1e-3),
-        RewardTerm("body_vel_l2", lambda env: body_vel_l2(env, SceneEntityCfg("robot")), -1e-2),
-        RewardTerm("desired_contact", desired_contact, 50), 
-        RewardTerm("above_palm", above_palm, 50.0),
+        # RewardTerm("body_vel_l2", lambda env: body_vel_l2(env, SceneEntityCfg("robot")), -1e-2),
+        # RewardTerm("desired_contact", desired_contact, 40), 
+        RewardTerm("above_palm", above_palm, 5),
         # RewardTerm("track_delta_object_pos", lambda env: track_delta_object_pos(env, command_name="object_pose"), 500)
         
         # RewardTerm("open_fingertips", open_fingertips, 0.0),
@@ -49,7 +49,7 @@ FSM_REWARD_TERMS = {
         # RewardTerm("palm_drop_penalty", lambda env: palm_drop_penalty(env, init_pos_z=0.58, robot_cfg=SceneEntityCfg("robot")), -0.0),
     ],
     FSMState.BEFORE_THROW: [
-        RewardTerm("undesired_forces", undesired_forces, -10.0),
+        RewardTerm("filtered_undesired_contacts", lambda env: filtered_undesired_contacts(env, threshold=THRESHOLD.force_thresh, sensor_cfg=SceneEntityCfg("sensor")), -10.0),
         # RewardTerm("track_object_l2", lambda env: track_object_l2(env, SceneEntityCfg("robot"), SceneEntityCfg("object")), -5.0),
         RewardTerm("track_delta_object_pos", lambda env: track_delta_object_pos(env, command_name="object_pose"), 500),
         RewardTerm("transition_reward", lambda env: transition_reward(env), 100),
@@ -123,8 +123,8 @@ class ManagerBasedRLFSMEnv(ManagerBasedRLEnv):
             info["episode"][f"fsm_state_count_{state}"] = mask.sum().item()
 
     def update_fsm_state(self):
-        cond_0_to_1 = is_static_and_inhand(self)
-        # cond_0_to_1 = impossible_condition(self)
+        # cond_0_to_1 = is_static_and_inhand(self)
+        cond_0_to_1 = impossible_condition(self)
         cond_1_to_2 = ~has_object_hand_contact(self)
         cond_1_to_end = is_object_ready_to_end(self)
         cond_2_to_3 = has_object_hand_contact(self)

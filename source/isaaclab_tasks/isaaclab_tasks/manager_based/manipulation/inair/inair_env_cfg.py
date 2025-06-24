@@ -9,6 +9,7 @@ from dataclasses import MISSING
 
 from isaaclab.envs.manager_based_rl_fsm_env_cfg import ManagerBasedRLFSMEnvCfg
 from isaaclab.envs.mdp.conditions import THRESHOLD
+from isaaclab.sensors.contact_sensor.contact_sensor_cfg import ContactSensorCfg
 import isaaclab.sim as sim_utils
 from isaaclab.assets import ArticulationCfg, AssetBaseCfg, RigidObjectCfg
 from isaaclab.managers import EventTermCfg as EventTerm
@@ -63,12 +64,13 @@ class InAirObjectSceneCfg(InteractiveSceneCfg):
             collision_props=sim_utils.CollisionPropertiesCfg(
                 collision_enabled=True,
             ),
-            mass_props=sim_utils.MassPropertiesCfg(density=400.0),
+            mass_props=sim_utils.MassPropertiesCfg(mass=0.6),
         ),
         init_state=RigidObjectCfg.InitialStateCfg(
             # pos=(0.4, -0.4,  1.2), # 2*2*2
             # pos=(0.4, -0.4,  1.0), # 3*3*3
             pos=(0.4, -0.4,  0.85), # 3*3*3 inhand
+            # pos=(1.0, -0.4,  0.85), # testing
             rot=(1.0, 0.0, 0.0, 0.0)
         ),
     )
@@ -90,7 +92,14 @@ class InAirObjectSceneCfg(InteractiveSceneCfg):
         prim_path="/World/domeLight",
         spawn=sim_utils.DomeLightCfg(color=(0.02, 0.02, 0.02), intensity=1000.0),
     )
-
+    
+    sensor = ContactSensorCfg(
+        prim_path="{ENV_REGEX_NS}/Robot/palm_lower",
+        update_period=0.0,
+        history_length=6,
+        debug_vis=True,
+        filter_prim_paths_expr=["{ENV_REGEX_NS}/object"],
+    )
 
 ##
 # MDP settings
@@ -168,10 +177,15 @@ class ObservationsCfg:
             params={"asset_cfg": SceneEntityCfg("object"), "command_name": "object_pose", "make_quat_unique": False},
         )
         
-        joint_wrench = ObsTerm(
-            func=mdp.joint_wrench_obs,
-            params={"asset_cfg": SceneEntityCfg(name="robot") },
+        contact_force = ObsTerm(
+            func=mdp.contact_force_obs,
+            params={"sensor_cfg": SceneEntityCfg(name="sensor")},
         )
+        
+        # joint_wrench = ObsTerm(
+        #     func=mdp.joint_wrench_obs,
+        #     params={"asset_cfg": SceneEntityCfg(name="robot") },
+        # )
 
         # # -- action terms
         # last_action = ObsTerm(func=mdp.last_action)

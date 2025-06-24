@@ -173,9 +173,14 @@ class RslRlVecEnvWrapper(VecEnv):
         if self.clip_actions is not None:
             actions = torch.clamp(actions, -self.clip_actions, self.clip_actions)
         # record step information
+        # actions = torch.tensor(
+        #     [[1.0,  1.0,  1.0, 0.0,  0.0, 0.0, # arm 
+        #     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]], # hand
+        # device='cuda:0')
+        # print(actions)
         obs_dict, rew, terminated, truncated, extras = self.env.step(actions)
         # compute dones for compatibility with RSL-RL
-        dones = (terminated | truncated).to(dtype=torch.long)
+        dones = (terminated | truncated).to(dtype=torch.long) 
         # move extra observations to the extras dict
         obs = obs_dict["policy"]
         extras["observations"] = obs_dict

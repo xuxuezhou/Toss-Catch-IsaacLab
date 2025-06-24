@@ -8,6 +8,7 @@
 import torch
 from typing import TYPE_CHECKING
 
+from isaaclab.sensors.contact_sensor.contact_sensor import ContactSensor
 import isaaclab.utils.math as math_utils
 from isaaclab.assets import RigidObject
 from isaaclab.envs import ManagerBasedRLEnv
@@ -171,3 +172,13 @@ def joint_wrench_obs(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEn
     joint_wrench_flat = joint_wrench.reshape(joint_wrench.shape[0], -1)
     
     return joint_wrench_flat
+
+def contact_force_obs(
+    env: ManagerBasedRLEnv, 
+    sensor_cfg: SceneEntityCfg = SceneEntityCfg("sensor"),
+):
+    contact_sensor: ContactSensor = env.scene.sensors[sensor_cfg.name]
+    filter_contact_forces = contact_sensor.data.force_matrix_w
+    filter_contact_forces = filter_contact_forces.view(filter_contact_forces.shape[0], -1)
+    
+    return filter_contact_forces

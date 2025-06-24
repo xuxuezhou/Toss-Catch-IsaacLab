@@ -139,18 +139,18 @@ def grasp_object(
     return dists.mean(dim=1)  # shape: [envs]
 
 
-def undesired_forces(
-    env: ManagerBasedRLEnv,
-    robot_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
-) -> torch.Tensor:
-    robot = env.scene[robot_cfg.name]
-    joint_wrench = robot.data.body_incoming_joint_wrench_b # (num_envs, num_links, 6)
-    hand_joint_forces = joint_wrench[:, 11, :3]
+# def undesired_forces(
+#     env: ManagerBasedRLEnv,
+#     robot_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+# ) -> torch.Tensor:
+#     robot = env.scene[robot_cfg.name]
+#     joint_wrench = robot.data.body_incoming_joint_wrench_b # (num_envs, num_links, 6)
+#     hand_joint_forces = joint_wrench[:, 11, :3]
     
-    forces_norm = torch.norm(hand_joint_forces, dim=-1)
-    mean_force = torch.mean(forces_norm, dim=-1)
+#     forces_norm = torch.norm(hand_joint_forces, dim=-1)
+#     mean_force = torch.mean(forces_norm, dim=-1)
     
-    return mean_force
+#     return mean_force
 
 def desired_contact(
     env: ManagerBasedRLEnv

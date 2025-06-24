@@ -31,7 +31,7 @@ LEAP_HAND_CFG = ArticulationCfg(
     spawn=sim_utils.UsdFileCfg(
         # usd_path=f"{ISAAC_NUCLEUS_DIR}/Robots/LeapHand/leap_right_hand_instanceable.usd",
         usd_path="/home/xuxuezhou/code/Toss-Catch-IsaacLab/source/isaaclab_assets/data/Robots/LEAPHand/leaphand.usd",
-        activate_contact_sensors=False,
+        activate_contact_sensors=True,
         rigid_props=sim_utils.RigidBodyPropertiesCfg(
             disable_gravity=True,
             retain_accelerations=False,
@@ -43,7 +43,7 @@ LEAP_HAND_CFG = ArticulationCfg(
             max_contact_impulse=1e32,
         ),
         articulation_props=sim_utils.ArticulationRootPropertiesCfg(
-            enabled_self_collisions=True,
+            enabled_self_collisions=False,
             solver_position_iteration_count=8,
             solver_velocity_iteration_count=0,
             sleep_threshold=0.005,

@@ -9,9 +9,9 @@ from isaaclab.controllers import OperationalSpaceControllerCfg
 from isaaclab.assets.articulation import ArticulationCfg
 from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR
 
-XARM_LEAP_HAND_CFG = ArticulationCfg(
+XARM_CFG = ArticulationCfg(
     spawn=sim_utils.UsdFileCfg(
-        usd_path="/home/xuxuezhou/code/Toss-Catch-IsaacLab/source/isaaclab_assets/data/Robots/xArmLEAPHand/xarm_leap.usd",
+        usd_path="/home/xuxuezhou/code/Toss-Catch-IsaacLab/source/isaaclab_assets/data/Robots/xArm/xarm.usd",
         activate_contact_sensors=True,
         rigid_props=sim_utils.RigidBodyPropertiesCfg(
             disable_gravity=False,
@@ -54,15 +54,6 @@ XARM_LEAP_HAND_CFG = ArticulationCfg(
             velocity_limit_sim=2.61,
             stiffness=0.0,
             damping=0.0,
-        ),
-        
-        "leap_hand": ImplicitActuatorCfg(
-            joint_names_expr=["^a_.*$"],  # Leap hand joints like a_0 ~ a_15
-            effort_limit_sim=0.5,
-            velocity_limit_sim=100.0,
-            stiffness=3.0,
-            damping=0.1,
-            friction=0.01,
         ),
     },
     soft_joint_pos_limit_factor=1.0,

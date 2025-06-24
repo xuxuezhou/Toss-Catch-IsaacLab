@@ -49,8 +49,10 @@ class xArmLeapCubeEnvCfg(inair_env_cfg.InAirObjectEnvCfg):
                 target_types=["pose_rel"], # dim: 6 
                 
                 impedance_mode="fixed",
-                motion_stiffness_task=(100.0, 100.0, 100.0, 100.0, 100.0, 100.0),
-                motion_damping_ratio_task=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0),
+                # motion_stiffness_task=(100.0, 100.0, 100.0, 100.0, 100.0, 100.0),
+                # motion_damping_ratio_task=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0),
+                motion_stiffness_task=(100.0, 100.0, 100.0, 50.0, 50.0, 50.0),
+                motion_damping_ratio_task=(2.0, 2.0, 2.0, 3.0, 3.0, 3.0),
                 
                 # contact_wrench_stiffness_task=[0.0, 0.0, 0.1, 0.0, 0.0, 0.0],
                 # motion_control_axes_task=[1, 0, 1, 1, 1, 1],
