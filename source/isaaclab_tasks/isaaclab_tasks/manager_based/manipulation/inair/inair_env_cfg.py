@@ -181,14 +181,9 @@ class ObservationsCfg:
             func=mdp.contact_force_obs,
             params={"sensor_cfg": SceneEntityCfg(name="sensor")},
         )
-        
-        # joint_wrench = ObsTerm(
-        #     func=mdp.joint_wrench_obs,
-        #     params={"asset_cfg": SceneEntityCfg(name="robot") },
-        # )
 
-        # # -- action terms
-        # last_action = ObsTerm(func=mdp.last_action)
+        # -- action terms
+        last_action = ObsTerm(func=mdp.last_action)
 
         def __post_init__(self):
             self.enable_corruption = True
