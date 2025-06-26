@@ -172,14 +172,16 @@ def main():
         # run everything in inference mode
         with torch.inference_mode():
             # agent stepping
-            actions = torch.zeros((env.num_envs, 22), device=env.unwrapped.device)
+            # actions = torch.zeros((env.num_envs, 22), device=env.unwrapped.device)
+            actions = policy(obs)
+            
             # print(f"[INFO] actions: {actions}")
             obs, rewards, dones, info = env.step(actions)
             
             # # get entity in environment
             # robot = env.unwrapped.scene["robot"]
             # object = env.unwrapped.scene["object"]
-            # contact_sensor = env.unwrapped.scene.sensors["sensor"]
+            contact_sensor = env.unwrapped.scene.sensors["sensor"]
             
             # # robot
             # joint_velocities = robot.data.joint_vel
@@ -204,9 +206,12 @@ def main():
             # hand_joint_pos = robot.data.joint_pos[:, 7:]
             
             # # contact sensor
-            # filter_contact_forces = contact_sensor.data.force_matrix_w
+            filter_contact_forces = contact_sensor.data.force_matrix_w
+            net_contact_forces = contact_sensor.data.net_forces_w
             # is_contact = torch.max(torch.norm(filter_contact_forces[:, :, :], dim=-1), dim=1)[0] > 0
-            
+            print(filter_contact_forces)
+            print(net_contact_forces)
+            import pdb;pdb.set_trace()
 
             # body_lin_vel_sum = torch.sum(torch.norm(robot.data.body_lin_vel_w[:, :, :], dim=-1), dim=1)
             # body_ang_vel_sum = torch.sum(torch.norm(robot.data.body_ang_vel_w[:, :, :], dim=-1), dim=1)

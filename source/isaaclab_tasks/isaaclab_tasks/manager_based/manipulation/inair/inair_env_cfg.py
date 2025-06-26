@@ -69,7 +69,7 @@ class InAirObjectSceneCfg(InteractiveSceneCfg):
         init_state=RigidObjectCfg.InitialStateCfg(
             # pos=(0.4, -0.4,  1.2), # 2*2*2
             # pos=(0.4, -0.4,  1.0), # 3*3*3
-            pos=(0.4, -0.4,  0.85), # 3*3*3 inhand
+            pos=(0.35, -0.45,  0.85), # 3*3*3 inhand
             # pos=(1.0, -0.4,  0.85), # testing
             rot=(1.0, 0.0, 0.0, 0.0)
         ),
