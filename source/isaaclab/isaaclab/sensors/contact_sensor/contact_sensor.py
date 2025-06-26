@@ -1,4 +1,4 @@
-# Copyright (c) 2022-2025, The Isaac Lab Project Developers (https://github.com/isaac-sim/IsaacLab/blob/main/CONTRIBUTORS.md).
+# Copyright (c) 2022-2025, The Isaac Lab Project Developers.
 # All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
@@ -12,9 +12,7 @@ import torch
 from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
-import carb
 import omni.physics.tensors.impl.api as physx
-from isaacsim.core.simulation_manager import SimulationManager
 from pxr import PhysxSchema
 
 import isaaclab.sim as sim_utils
@@ -72,11 +70,6 @@ class ContactSensor(SensorBase):
         """
         # initialize base class
         super().__init__(cfg)
-
-        # Enable contact processing
-        carb_settings_iface = carb.settings.get_settings()
-        carb_settings_iface.set_bool("/physics/disableContactProcessing", False)
-
         # Create empty variables for storing output data
         self._data: ContactSensorData = ContactSensorData()
         # initialize self._body_physx_view for running in extension mode
@@ -154,6 +147,7 @@ class ContactSensor(SensorBase):
         # reset force matrix
         if len(self.cfg.filter_prim_paths_expr) != 0:
             self._data.force_matrix_w[env_ids] = 0.0
+            # TODO reset contact data buffers 
         # reset the current air time
         if self.cfg.track_air_time:
             self._data.current_air_time[env_ids] = 0.0
@@ -250,8 +244,9 @@ class ContactSensor(SensorBase):
 
     def _initialize_impl(self):
         super()._initialize_impl()
-        # obtain global simulation view
-        self._physics_sim_view = SimulationManager.get_physics_sim_view()
+        # create simulation view
+        self._physics_sim_view = physx.create_simulation_view(self._backend)
+        self._physics_sim_view.set_subspace_roots("/")
         # check that only rigid bodies are selected
         leaf_pattern = self.cfg.prim_path.rsplit("/", 1)[-1]
         template_prim_path = self._parent_prims[0].GetPath().pathString
@@ -278,8 +273,10 @@ class ContactSensor(SensorBase):
         # create a rigid prim view for the sensor
         self._body_physx_view = self._physics_sim_view.create_rigid_body_view(body_names_glob)
         self._contact_physx_view = self._physics_sim_view.create_rigid_contact_view(
-            body_names_glob, filter_patterns=filter_prim_paths_glob
+            body_names_glob, filter_patterns=filter_prim_paths_glob,
+            max_contact_data_count = self.cfg.max_contact_data_count
         )
+
         # resolve the true count of bodies
         self._num_bodies = self.body_physx_view.count // self._num_envs
         # check that contact reporter succeeded
@@ -313,9 +310,16 @@ class ContactSensor(SensorBase):
         # force matrix: (num_envs, num_bodies, num_filter_shapes, 3)
         if len(self.cfg.filter_prim_paths_expr) != 0:
             num_filters = self.contact_physx_view.filter_count
-            self._data.force_matrix_w = torch.zeros(
-                self._num_envs, self._num_bodies, num_filters, 3, device=self._device
-            )
+            self._data.force_matrix_w = torch.zeros(self._num_envs, self._num_bodies, num_filters, 3, device=self._device)
+            # contact data buffers TODO: check if this works
+            if self.cfg.max_contact_data_count > 0:
+                self._data.contact_forces_buffer = None
+                self._data.contact_points_buffer = None
+                self._data.contact_normals_buffer = None
+                self._data.contact_separation_distances_buffer = None
+                # Per-environment-body-filter indices
+                self._data.contact_start_indices_buffer = torch.zeros(self._num_envs, self._num_bodies, num_filters, dtype=torch.int32, device=self._device)#dtype=torch.int32
+                self._data.contact_count_buffer = torch.zeros(self._num_envs, self._num_bodies, num_filters, dtype=torch.int32, device=self._device)#dtype=torch.int32
 
     def _update_buffers_impl(self, env_ids: Sequence[int]):
         """Fills the buffers of the sensor data."""
@@ -332,9 +336,6 @@ class ContactSensor(SensorBase):
         if self.cfg.history_length > 0:
             self._data.net_forces_w_history[env_ids, 1:] = self._data.net_forces_w_history[env_ids, :-1].clone()
             self._data.net_forces_w_history[env_ids, 0] = self._data.net_forces_w[env_ids]
-        
-        # print(f"Net Force: {self._data.net_forces_w[env_ids]}")
-        # import pdb;pdb.set_trace()
 
         # obtain the contact force matrix
         if len(self.cfg.filter_prim_paths_expr) != 0:
@@ -344,9 +345,26 @@ class ContactSensor(SensorBase):
             force_matrix_w = self.contact_physx_view.get_contact_force_matrix(dt=self._sim_physics_dt)
             force_matrix_w = force_matrix_w.view(-1, self._num_bodies, num_filters, 3)
             self._data.force_matrix_w[env_ids] = force_matrix_w[env_ids]
-            # print(f"Net Force: {self._data.net_forces_w[env_ids]}")
-            # print(f"Force Matrix: {self._data.force_matrix_w[env_ids]}")
-            # import pdb;pdb.set_trace()
+            # acquire and shape the contact data TODO: check if this works
+            if self.cfg.max_contact_data_count > 0:
+                (
+                    contact_forces_buffer, 
+                    contact_points_buffer, 
+                    contact_normals_buffer, 
+                    contact_separation_distances_buffer, 
+                    contact_count_buffer,
+                    start_indices_buffer, 
+                ) = self.contact_physx_view.get_contact_data(dt=self._sim_physics_dt)
+                # Update global buffers
+                self._data.contact_forces_buffer = contact_forces_buffer
+                self._data.contact_points_buffer = contact_points_buffer
+                self._data.contact_normals_buffer = contact_normals_buffer
+                self._data.contact_separation_distances_buffer = contact_separation_distances_buffer
+                # Reshape count and indices to (num_envs, num_bodies, num_filters)
+                contact_count = contact_count_buffer.view(self._num_envs, self._num_bodies, -1)
+                start_indices = start_indices_buffer.view(self._num_envs, self._num_bodies, -1)
+                self._data.contact_count_buffer[env_ids] = contact_count[env_ids]
+                self._data.contact_start_indices_buffer[env_ids] = start_indices[env_ids]
 
         # obtain the pose of the sensor origin
         if self.cfg.track_pose:
@@ -424,5 +442,6 @@ class ContactSensor(SensorBase):
         # call parent
         super()._invalidate_initialize_callback(event)
         # set all existing views to None to invalidate them
+        self._physics_sim_view = None
         self._body_physx_view = None
         self._contact_physx_view = None

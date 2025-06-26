@@ -100,3 +100,58 @@ class ContactSensorData:
     Note:
         If the :attr:`ContactSensorCfg.track_air_time` is False, then this quantity is None.
     """
+    
+    contact_forces_buffer: torch.Tensor | None = None
+    """Buffer storing detailed contact forces per patch. 
+
+    Shape is (max_contact_data_count, 1), where each entry is the force magnitude at a contact point.
+
+    Note:
+        If the :attr:`ContactSensorCfg.filter_prim_paths_expr` is empty, then this quantity is None.
+        If the :attr: `ContactSensorCfg.max_contact_data_count` is 0, then this quantity is None.
+        """    
+    contact_points_buffer: torch.Tensor | None = None
+    """Buffer storing contact points in world frame. 
+
+    Shape is (max_contact_data_count, 3), where each entry is the (x, y, z) position of a contact point.
+
+    Note:
+        If the :attr:`ContactSensorCfg.filter_prim_paths_expr` is empty, then this quantity is None.
+        If the :attr: `ContactSensorCfg.max_contact_data_count` is 0, then this quantity is None.
+        """  
+    contact_normals_buffer: torch.Tensor | None = None
+    """Buffer storing contact normals in world frame. 
+
+    Shape is (max_contact_data_count, 3), where each entry is the (x, y, z) normal vector at a contact point.
+
+    Note:
+        If the :attr:`ContactSensorCfg.filter_prim_paths_expr` is empty, then this quantity is None.
+        If the :attr: `ContactSensorCfg.max_contact_data_count` is 0, then this quantity is None.
+        """  
+    contact_separation_distances_buffer: torch.Tensor | None = None
+    """Buffer storing separation distances at contact points.
+
+    Shape is (max_contact_data_count, 1), where each entry is the separation distance.
+
+    Note:
+        If the :attr:`ContactSensorCfg.filter_prim_paths_expr` is empty, then this quantity is None.
+        If the :attr: `ContactSensorCfg.max_contact_data_count` is 0, then this quantity is None.
+        """  
+    contact_count_buffer: torch.Tensor | None = None
+    """Number of active contacts per sensor-filter pair. 
+
+    Shape is (num_envs, num_bodies, num_filters), where each entry is the count of contacts.
+
+    Note:
+        If the :attr:`ContactSensorCfg.filter_prim_paths_expr` is empty, then this quantity is None.
+        If the :attr: `ContactSensorCfg.max_contact_data_count` is 0, then this quantity is None.
+        """  
+    contact_start_indices_buffer: torch.Tensor | None = None
+    """Start indices in buffers for each sensor-filter pair.
+
+    Shape is (num_envs, num_bodies, num_filters), where each entry points to the start index in data buffers. 
+
+    Note:
+        If the :attr:`ContactSensorCfg.filter_prim_paths_expr` is empty, then this quantity is None.
+        If the :attr: `ContactSensorCfg.max_contact_data_count` is 0, then this quantity is None.
+        """  
