@@ -2,6 +2,7 @@
 """Configuration for the xArm + Leap Hand combined robot."""
 
 import math
+import os
 
 import isaaclab.sim as sim_utils
 from isaaclab.actuators.actuator_cfg import IdealPDActuatorCfg, ImplicitActuatorCfg
@@ -11,7 +12,7 @@ from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR
 
 XARM_LEAP_HAND_CFG = ArticulationCfg(
     spawn=sim_utils.UsdFileCfg(
-        usd_path="/home/xuxuezhou/code/Toss-Catch-IsaacLab/source/isaaclab_assets/data/Robots/xArmLEAPHand/xarm_leap.usd",
+        usd_path=os.path.expanduser("~/code/Toss-Catch-IsaacLab/source/isaaclab_assets/data/Robots/xArmLEAPHand/xarm_leap.usd"),
         activate_contact_sensors=True,
         rigid_props=sim_utils.RigidBodyPropertiesCfg(
             disable_gravity=False,
