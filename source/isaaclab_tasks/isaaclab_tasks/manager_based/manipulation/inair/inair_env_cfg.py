@@ -65,6 +65,7 @@ class InAirObjectSceneCfg(InteractiveSceneCfg):
                 collision_enabled=True,
             ),
             mass_props=sim_utils.MassPropertiesCfg(mass=0.6),
+            activate_contact_sensors=True,
         ),
         init_state=RigidObjectCfg.InitialStateCfg(
             # pos=(0.4, -0.4,  1.2), # 2*2*2
@@ -145,45 +146,44 @@ class ObservationsCfg:
 
         # observation terms (order preserved)
         # -- robot terms
-        hand_joint_pos = ObsTerm(func=mdp.hand_joint_pos_limit_normalized, noise=Gnoise(std=0.005))
-        hand_joint_vel = ObsTerm(func=mdp.hand_joint_vel_rel, scale=0.2, noise=Gnoise(std=0.01))
+        hand_joint_pos = ObsTerm(func=mdp.hand_joint_pos_limit_normalized, noise=Gnoise(std=0.005)) # dim=16
+        hand_joint_vel = ObsTerm(func=mdp.hand_joint_vel_rel, scale=0.2, noise=Gnoise(std=0.01)) # dim=16
         
-        end_effector_pos = ObsTerm(func=mdp.end_effector_pos)
-        end_effector_lin_vel = ObsTerm(func=mdp.end_effector_lin_vel)
-        end_effector_ang_vel = ObsTerm(func=mdp.end_effector_ang_vel)
+        end_effector_state = ObsTerm(func=mdp.end_effector_state) # dim=13
         
-
         # -- object terms
         object_pos = ObsTerm(
             func=mdp.root_pos_w, noise=Gnoise(std=0.002), params={"asset_cfg": SceneEntityCfg("object")}
-        )
+        ) # dim=3
         object_quat = ObsTerm(
             func=mdp.root_quat_w, params={"asset_cfg": SceneEntityCfg("object"), "make_quat_unique": False}
-        )
+        ) # dim=4
         object_lin_vel = ObsTerm(
             func=mdp.root_lin_vel_w, noise=Gnoise(std=0.002), params={"asset_cfg": SceneEntityCfg("object")}
-        )
+        ) # dim=3
         object_ang_vel = ObsTerm(
             func=mdp.root_ang_vel_w,
             scale=0.2,
             noise=Gnoise(std=0.002),
             params={"asset_cfg": SceneEntityCfg("object")},
-        )
+        ) # dim=3
+        
+        # ---dim=54---
 
         # -- command terms
-        goal_pose = ObsTerm(func=mdp.generated_commands, params={"command_name": "object_pose"})
+        goal_pose = ObsTerm(func=mdp.generated_commands, params={"command_name": "object_pose"}) # dim=7
         goal_quat_diff = ObsTerm(
             func=mdp.goal_quat_diff,
             params={"asset_cfg": SceneEntityCfg("object"), "command_name": "object_pose", "make_quat_unique": False},
-        )
+        ) # dim=4
         
         contact_force = ObsTerm(
             func=mdp.contact_force_obs,
             params={"sensor_cfg": SceneEntityCfg(name="sensor")},
-        )
+        ) # dim=3
 
         # -- action terms
-        last_action = ObsTerm(func=mdp.last_action)
+        last_action = ObsTerm(func=mdp.last_action) # dim=22
 
         def __post_init__(self):
             self.enable_corruption = True

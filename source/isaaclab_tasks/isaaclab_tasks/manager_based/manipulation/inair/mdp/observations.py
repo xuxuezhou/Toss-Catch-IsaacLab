@@ -82,65 +82,24 @@ def initial_root_quat_w(
     identity_quat[:, 0] = 1.0  # Set w component to 1 for identity quaternion
     return identity_quat
 
-def end_effector_pos(
+def end_effector_state(
     env: ManagerBasedRLEnv, 
     robot_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
 ) -> torch.Tensor:
-    """Get the end effector position in the world frame.
+    """Get the end effector state (pos (3) + quat (4) + lin_vel (3) + ang_vel (3)) in the world frame.
     
     Args:
         env: The environment object.
         robot_cfg: The configuration for the robot entity. Default is "robot".
-        link_index: The index of the end effector link. Default is 6 (palm link).
+        link_index: The index of the end effector link. Default is 9 (eef_link).
         
     Returns:
-        The end effector position in the world frame.
+        The end effector state in the world frame.
     """
     robot = env.scene[robot_cfg.name]
-    link_state = robot.data.body_link_state_w[:, 9]
-    end_effector_pos = link_state[:, :3]
-    
-    return end_effector_pos
+    end_effector_state = robot.data.body_link_state_w[:, 9]
 
-def end_effector_lin_vel(
-    env: ManagerBasedRLEnv, 
-    robot_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
-) -> torch.Tensor:
-    """Get the end effector velocity in the world frame.
-    
-    Args:
-        env: The environment object.
-        robot_cfg: The configuration for the robot entity. Default is "robot".
-        link_index: The index of the end effector link. Default is 6 (palm link).
-        
-    Returns:
-        The end effector velocity in the world frame.
-    """
-    robot = env.scene[robot_cfg.name]
-    link_state = robot.data.body_link_state_w[:, 9] 
-    end_effector_lin_vel = link_state[:, 7:10] # [pos: 3, quat: 4, lin_vel: 3, ang_vel: 3]
-    
-    return end_effector_lin_vel
-
-def end_effector_ang_vel(
-    env: ManagerBasedRLEnv, 
-    robot_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
-) -> torch.Tensor:
-    """Get the end effector velocity in the world frame.
-    
-    Args:
-        env: The environment object.
-        robot_cfg: The configuration for the robot entity. Default is "robot".
-        link_index: The index of the end effector link. Default is 6 (palm link).
-        
-    Returns:
-        The end effector velocity in the world frame.
-    """
-    robot = env.scene[robot_cfg.name]
-    link_state = robot.data.body_link_state_w[:, 9] 
-    end_effector_ang_vel = link_state[:, 10:] # [pos, quat, lin_vel, ang_vel]
-    
-    return end_effector_ang_vel
+    return end_effector_state
 
 def hand_joint_pos_limit_normalized(
     env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
@@ -150,7 +109,6 @@ def hand_joint_pos_limit_normalized(
     Note: Only the joints configured in :attr:`asset_cfg.joint_ids` will have their normalized positions returned.
     """
     asset: Articulation = env.scene[asset_cfg.name]
-    
     return math_utils.scale_transform(
         asset.data.joint_pos[:, asset_cfg.joint_ids][:,7:],
         asset.data.soft_joint_pos_limits[:, asset_cfg.joint_ids, 0][:,7:],
@@ -179,6 +137,6 @@ def contact_force_obs(
 ):
     contact_sensor: ContactSensor = env.scene.sensors[sensor_cfg.name]
     filter_contact_forces = contact_sensor.data.force_matrix_w
-    filter_contact_forces = filter_contact_forces.view(filter_contact_forces.shape[0], -1)
+    filter_contact_forces = filter_contact_forces.view(filter_contact_forces.shape[0], -1) # (N, B*M*3)
     
     return filter_contact_forces

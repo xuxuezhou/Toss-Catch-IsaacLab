@@ -82,6 +82,7 @@ class ContactSensorSceneCfg(InteractiveSceneCfg):
             collision_props=sim_utils.CollisionPropertiesCfg(),
             physics_material=sim_utils.RigidBodyMaterialCfg(static_friction=1.0),
             visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.0, 1.0, 0.0), metallic=0.2),
+            activate_contact_sensors=True,
         ),
         # init_state=RigidObjectCfg.InitialStateCfg(pos=(0.5, 0.5, 0.05)),
         init_state=RigidObjectCfg.InitialStateCfg(pos=(0.2, 0.0, 0.0)),
@@ -110,6 +111,7 @@ class ContactSensorSceneCfg(InteractiveSceneCfg):
                 collision_enabled=True,
             ),
             mass_props=sim_utils.MassPropertiesCfg(density=400.0),
+            activate_contact_sensors=True,
         ),
         init_state=RigidObjectCfg.InitialStateCfg(
             # pos=(0.4, -0.4,  1.2), # 2*2*2

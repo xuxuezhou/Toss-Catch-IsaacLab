@@ -17,7 +17,7 @@ Reference:
 
 
 import math
-
+import os
 import isaaclab.sim as sim_utils
 from isaaclab.actuators.actuator_cfg import ImplicitActuatorCfg
 from isaaclab.assets.articulation import ArticulationCfg
@@ -30,7 +30,7 @@ from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR
 LEAP_HAND_CFG = ArticulationCfg(
     spawn=sim_utils.UsdFileCfg(
         # usd_path=f"{ISAAC_NUCLEUS_DIR}/Robots/LeapHand/leap_right_hand_instanceable.usd",
-        usd_path="/home/xuxuezhou/code/Toss-Catch-IsaacLab/source/isaaclab_assets/data/Robots/LEAPHand/leaphand.usd",
+        usd_path=os.path.expanduser("~/code/Toss-Catch-IsaacLab/source/isaaclab_assets/data/Robots/LEAPHand/leaphand.usd"),
         activate_contact_sensors=True,
         rigid_props=sim_utils.RigidBodyPropertiesCfg(
             disable_gravity=True,
@@ -43,7 +43,7 @@ LEAP_HAND_CFG = ArticulationCfg(
             max_contact_impulse=1e32,
         ),
         articulation_props=sim_utils.ArticulationRootPropertiesCfg(
-            enabled_self_collisions=False,
+            enabled_self_collisions=True,
             solver_position_iteration_count=8,
             solver_velocity_iteration_count=0,
             sleep_threshold=0.005,

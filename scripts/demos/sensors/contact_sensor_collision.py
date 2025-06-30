@@ -37,7 +37,7 @@ from isaaclab.assets.articulation.articulation_cfg import ArticulationCfg
 ##
 # Pre-defined configs
 ##
-from isaaclab_assets.robots.allegro import ALLEGRO_HAND_CFG  # isort: skip
+from isaaclab_assets.robots.leap import LEAP_HAND_CFG  # isort: skip
 import time
 
 
@@ -54,67 +54,15 @@ class ContactSensorSceneCfg(InteractiveSceneCfg):
     )
 
     # robot
-    robot = ALLEGRO_HAND_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
-
-    # Rigid Object
-    cube = RigidObjectCfg(
-        prim_path="{ENV_REGEX_NS}/Cube",
-        spawn=sim_utils.CuboidCfg(
-            size=(0.3, 0.5, 0.01),
-            rigid_props=sim_utils.RigidBodyPropertiesCfg(),
-            mass_props=sim_utils.MassPropertiesCfg(mass=100.0),
-            collision_props=sim_utils.CollisionPropertiesCfg(),
-            physics_material=sim_utils.RigidBodyMaterialCfg(static_friction=1.0),
-            visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.0, 1.0, 0.0), metallic=0.2),
-            activate_contact_sensors=True,
-        ),
-        # init_state=RigidObjectCfg.InitialStateCfg(pos=(0.5, 0.5, 0.05)),
-        init_state=RigidObjectCfg.InitialStateCfg(pos=(0.2, 0.0, 0.0)),
-    )
-    
-    object: RigidObjectCfg = RigidObjectCfg(
-        prim_path="{ENV_REGEX_NS}/object",
-        spawn=sim_utils.UsdFileCfg(
-            usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/DexCube/dex_cube_instanceable.usd",
-            # scale=(1.75, 1.75, 1.75),
-            scale=(2.25, 2.25, 2.25),
-            rigid_props=sim_utils.RigidBodyPropertiesCfg(
-                kinematic_enabled=False,
-                disable_gravity=False,
-                enable_gyroscopic_forces=True,
-                solver_position_iteration_count=8,
-                solver_velocity_iteration_count=0,
-                sleep_threshold=0.005,
-                stabilization_threshold=0.0025,
-                max_depenetration_velocity=1000.0,
-            ),
-            collision_props=sim_utils.CollisionPropertiesCfg(
-                collision_enabled=True,
-            ),
-            mass_props=sim_utils.MassPropertiesCfg(mass=0.2),
-            activate_contact_sensors=True,
-        ),
-        init_state=RigidObjectCfg.InitialStateCfg(
-            pos=(0.0, -0.05,  0.7), # 3*3*3 inhand
-            rot=(1.0, 0.0, 0.0, 0.0)
-        ),
-    )
+    robot = LEAP_HAND_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
 
     contact_forces = ContactSensorCfg(
-        prim_path="{ENV_REGEX_NS}/Robot/palm_link",
+        prim_path="{ENV_REGEX_NS}/Robot/palm_lower",
         update_period=0.0,
         history_length=0,
         debug_vis=True,
         filter_prim_paths_expr=["{ENV_REGEX_NS}/object"],
     )
-    
-    # contact_forces = ContactSensorCfg(
-    #     prim_path="{ENV_REGEX_NS}/Robot/(palm_lower|.*fingertip.*|.*pip.*|.*dip.*|.*mcp_joint.*)",
-    #     update_period=0.0,
-    #     history_length=6,
-    #     debug_vis=True,
-    #     filter_prim_paths_expr=["{ENV_REGEX_NS}/object"]
-    # )
 
 
 def run_simulator(sim: sim_utils.SimulationContext, scene: InteractiveScene):

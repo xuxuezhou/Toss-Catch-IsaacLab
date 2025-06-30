@@ -1,3 +1,4 @@
+
 # Copyright (c) 2022-2025, The Isaac Lab Project Developers.
 # All rights reserved.
 #
@@ -182,6 +183,7 @@ def print_sensor_contact_details(sensor):
                     print(f" Position: {sensor.data.contact_points_buffer[i].cpu().numpy()} m")
                     print(f" Normal: {sensor.data.contact_normals_buffer[i].cpu().numpy()}")
                     print(f" Separation: {sensor.data.contact_separation_distances_buffer[i].cpu().numpy()} m")
+                import pdb;pdb.set_trace()
             else:
                 print("No contacts detected.")
 

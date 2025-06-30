@@ -66,37 +66,39 @@ class ContactSensorSceneCfg(InteractiveSceneCfg):
             collision_props=sim_utils.CollisionPropertiesCfg(),
             physics_material=sim_utils.RigidBodyMaterialCfg(static_friction=1.0),
             visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.0, 1.0, 0.0), metallic=0.2),
+            activate_contact_sensors=True,
         ),
         # init_state=RigidObjectCfg.InitialStateCfg(pos=(0.5, 0.5, 0.05)),
         init_state=RigidObjectCfg.InitialStateCfg(pos=(0.2, -0.2, 0.0)),
     )
     
-    # object: RigidObjectCfg = RigidObjectCfg(
-    #     prim_path="{ENV_REGEX_NS}/object",
-    #     spawn=sim_utils.UsdFileCfg(
-    #         usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/DexCube/dex_cube_instanceable.usd",
-    #         # scale=(1.75, 1.75, 1.75),
-    #         scale=(2.25, 2.25, 2.25),
-    #         rigid_props=sim_utils.RigidBodyPropertiesCfg(
-    #             kinematic_enabled=False,
-    #             disable_gravity=False,
-    #             enable_gyroscopic_forces=True,
-    #             solver_position_iteration_count=8,
-    #             solver_velocity_iteration_count=0,
-    #             sleep_threshold=0.005,
-    #             stabilization_threshold=0.0025,
-    #             max_depenetration_velocity=1000.0,
-    #         ),
-    #         collision_props=sim_utils.CollisionPropertiesCfg(
-    #             collision_enabled=True,
-    #         ),
-    #         mass_props=sim_utils.MassPropertiesCfg(mass=0.2),
-    #     ),
-    #     init_state=RigidObjectCfg.InitialStateCfg(
-    #         pos=(0.0, 0.0,  0.7), # 3*3*3 inhand
-    #         rot=(1.0, 0.0, 0.0, 0.0)
-    #     ),
-    # )
+    object: RigidObjectCfg = RigidObjectCfg(
+        prim_path="{ENV_REGEX_NS}/object",
+        spawn=sim_utils.UsdFileCfg(
+            usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/DexCube/dex_cube_instanceable.usd",
+            # scale=(1.75, 1.75, 1.75),
+            scale=(2.25, 2.25, 2.25),
+            rigid_props=sim_utils.RigidBodyPropertiesCfg(
+                kinematic_enabled=False,
+                disable_gravity=False,
+                enable_gyroscopic_forces=True,
+                solver_position_iteration_count=8,
+                solver_velocity_iteration_count=0,
+                sleep_threshold=0.005,
+                stabilization_threshold=0.0025,
+                max_depenetration_velocity=1000.0,
+            ),
+            collision_props=sim_utils.CollisionPropertiesCfg(
+                collision_enabled=True,
+            ),
+            mass_props=sim_utils.MassPropertiesCfg(mass=0.2),
+            activate_contact_sensors=True,
+        ),
+        init_state=RigidObjectCfg.InitialStateCfg(
+            pos=(0.0, 0.0,  0.7), # 3*3*3 inhand
+            rot=(1.0, 0.0, 0.0, 0.0)
+        ),
+    )
 
     contact_forces = ContactSensorCfg(
         prim_path="{ENV_REGEX_NS}/Robot/link7",

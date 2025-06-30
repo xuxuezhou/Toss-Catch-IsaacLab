@@ -91,6 +91,7 @@ class ContactSensorSceneCfg(InteractiveSceneCfg):
                 collision_enabled=True,
             ),
             mass_props=sim_utils.MassPropertiesCfg(mass=0.2),
+            activate_contact_sensors=True,
         ),
         init_state=RigidObjectCfg.InitialStateCfg(
             pos=(0.0, -0.15,  0.7), # 3*3*3 inhand

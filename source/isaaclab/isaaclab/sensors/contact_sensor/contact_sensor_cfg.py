@@ -57,11 +57,3 @@ class ContactSensorCfg(SensorBaseCfg):
     .. note::
         This attribute is only used when debug visualization is enabled.
     """
-    
-    max_contact_data_count: int = 100
-    """The maximum number of contact data entries to store globally for detailed contact reporting.
-
-    This determines the size of the buffers for forces, points, normals, and separation distances. 
-    
-    Defaults to 100.
-    """
