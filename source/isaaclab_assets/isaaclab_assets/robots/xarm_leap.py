@@ -41,28 +41,20 @@ XARM_LEAP_HAND_CFG = ArticulationCfg(
         },
     ),
     actuators={
-        "xarm_shoulder": ImplicitActuatorCfg(
-            joint_names_expr=["^joint[1-4]$"],  # xArm joints 1-4
-            effort_limit_sim=87.0,
+        "xarm": ImplicitActuatorCfg(
+            joint_names_expr=["^joint[1-7]$"],  # xArm joints 1-7 (merged)
+            effort_limit_sim=1000.0,
             velocity_limit_sim=2.175,
             stiffness=0.0,
             damping=0.0,
         ),
-        
-        "xarm_forearm": ImplicitActuatorCfg(
-            joint_names_expr=["^joint[5-7]$"],  # xArm joints 5-7
-            effort_limit_sim=12.0,
-            velocity_limit_sim=2.61,
-            stiffness=0.0,
-            damping=0.0,
-        ),
-        
+
         "leap_hand": ImplicitActuatorCfg(
             joint_names_expr=["^a_.*$"],  # Leap hand joints like a_0 ~ a_15
             effort_limit_sim=0.5,
             velocity_limit_sim=100.0,
-            stiffness=3.0,
-            damping=0.1,
+            stiffness=200.0,
+            damping=50.0,
             friction=0.01,
         ),
     },
