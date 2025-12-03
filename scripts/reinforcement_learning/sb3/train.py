@@ -30,11 +30,15 @@ parser.add_argument("--seed", type=int, default=None, help="Seed used for the en
 parser.add_argument("--log_interval", type=int, default=100_000, help="Log data every n timesteps.")
 parser.add_argument("--checkpoint", type=str, default=None, help="Continue the training from checkpoint.")
 parser.add_argument("--max_iterations", type=int, default=None, help="RL Policy training iterations.")
+parser.add_argument("--export_io_descriptors", action="store_true", default=False, help="Export IO descriptors.")
 parser.add_argument(
     "--keep_all_info",
     action="store_true",
     default=False,
     help="Use a slower SB3 wrapper but keep all the extra training info.",
+)
+parser.add_argument(
+    "--ray-proc-id", "-rid", type=int, default=None, help="Automatically configured by Ray integration, otherwise None."
 )
 # append AppLauncher cli args
 AppLauncher.add_app_launcher_args(parser)
@@ -72,6 +76,7 @@ signal.signal(signal.SIGINT, cleanup_pbar)
 """Rest everything follows."""
 
 import gymnasium as gym
+import logging
 import numpy as np
 import os
 import random
@@ -89,13 +94,15 @@ from isaaclab.envs import (
     multi_agent_to_single_agent,
 )
 from isaaclab.utils.dict import print_dict
-from isaaclab.utils.io import dump_pickle, dump_yaml
+from isaaclab.utils.io import dump_yaml
 
 from isaaclab_rl.sb3 import Sb3VecEnvWrapper, process_sb3_cfg
 
 import isaaclab_tasks  # noqa: F401
 from isaaclab_tasks.utils.hydra import hydra_task_config
 
+# import logger
+logger = logging.getLogger(__name__)
 # PLACEHOLDER: Extension template (do not remove this comment)
 
 
@@ -128,8 +135,6 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
     # dump the configuration into log-directory
     dump_yaml(os.path.join(log_dir, "params", "env.yaml"), env_cfg)
     dump_yaml(os.path.join(log_dir, "params", "agent.yaml"), agent_cfg)
-    dump_pickle(os.path.join(log_dir, "params", "env.pkl"), env_cfg)
-    dump_pickle(os.path.join(log_dir, "params", "agent.pkl"), agent_cfg)
 
     # save command used to run the script
     command = " ".join(sys.orig_argv)
@@ -140,6 +145,17 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
     # read configurations about the agent-training
     policy_arch = agent_cfg.pop("policy")
     n_timesteps = agent_cfg.pop("n_timesteps")
+
+    # set the IO descriptors export flag if requested
+    if isinstance(env_cfg, ManagerBasedRLEnvCfg):
+        env_cfg.export_io_descriptors = args_cli.export_io_descriptors
+    else:
+        logger.warning(
+            "IO descriptors are only supported for manager based RL environments. No IO descriptors will be exported."
+        )
+
+    # set the log directory for the environment (works for all environment types)
+    env_cfg.log_dir = log_dir
 
     # create isaac environment
     env = gym.make(args_cli.task, cfg=env_cfg, render_mode="rgb_array" if args_cli.video else None)
